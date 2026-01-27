@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_dmrs_pdcch.a CMakeFiles/srsran_dmrs_pdcch.dir/pdcch/factories.cpp.o CMakeFiles/srsran_dmrs_pdcch.dir/pdcch/dmrs_pdcch_processor_impl.cpp.o CMakeFiles/srsran_dmrs_pdcch.dir/dmrs_helper.cpp.o
+/usr/bin/ranlib libsrsran_dmrs_pdcch.a

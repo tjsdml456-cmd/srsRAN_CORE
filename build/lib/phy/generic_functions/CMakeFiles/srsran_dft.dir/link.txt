@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_dft.a CMakeFiles/srsran_dft.dir/dft_processor_generic_impl.cpp.o CMakeFiles/srsran_dft.dir/generic_functions_factories.cpp.o CMakeFiles/srsran_dft.dir/dft_processor_fftw_impl.cpp.o CMakeFiles/srsran_dft.dir/dft_processor_ci16_avx2.cpp.o
+/usr/bin/ranlib libsrsran_dft.a

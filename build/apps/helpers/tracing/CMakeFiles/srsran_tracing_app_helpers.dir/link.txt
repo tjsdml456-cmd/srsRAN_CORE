@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_tracing_app_helpers.a CMakeFiles/srsran_tracing_app_helpers.dir/tracer_appconfig_cli11_schema.cpp.o CMakeFiles/srsran_tracing_app_helpers.dir/tracer_appconfig_yaml_writer.cpp.o
+/usr/bin/ranlib libsrsran_tracing_app_helpers.a

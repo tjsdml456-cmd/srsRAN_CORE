@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_cu_cp_unit_metrics_consumers.a CMakeFiles/srsran_cu_cp_unit_metrics_consumers.dir/ngap_metrics_consumers.cpp.o CMakeFiles/srsran_cu_cp_unit_metrics_consumers.dir/rrc_metrics_consumers.cpp.o
+/usr/bin/ranlib libsrsran_cu_cp_unit_metrics_consumers.a

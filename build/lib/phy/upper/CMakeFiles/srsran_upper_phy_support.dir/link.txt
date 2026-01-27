@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_upper_phy_support.a CMakeFiles/srsran_upper_phy_support.dir/rx_buffer_pool_impl.cpp.o
+/usr/bin/ranlib libsrsran_upper_phy_support.a

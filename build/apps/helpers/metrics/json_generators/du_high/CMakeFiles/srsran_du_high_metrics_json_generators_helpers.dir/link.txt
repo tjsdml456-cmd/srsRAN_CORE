@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_du_high_metrics_json_generators_helpers.a CMakeFiles/srsran_du_high_metrics_json_generators_helpers.dir/mac.cpp.o CMakeFiles/srsran_du_high_metrics_json_generators_helpers.dir/rlc.cpp.o CMakeFiles/srsran_du_high_metrics_json_generators_helpers.dir/scheduler.cpp.o
+/usr/bin/ranlib libsrsran_du_high_metrics_json_generators_helpers.a

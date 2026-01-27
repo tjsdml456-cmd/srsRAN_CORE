@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_ssb_tx_processor.a CMakeFiles/srsran_ssb_tx_processor.dir/factories.cpp.o CMakeFiles/srsran_ssb_tx_processor.dir/pbch_encoder_impl.cpp.o CMakeFiles/srsran_ssb_tx_processor.dir/pbch_modulator_impl.cpp.o CMakeFiles/srsran_ssb_tx_processor.dir/ssb_processor_impl.cpp.o
+/usr/bin/ranlib libsrsran_ssb_tx_processor.a

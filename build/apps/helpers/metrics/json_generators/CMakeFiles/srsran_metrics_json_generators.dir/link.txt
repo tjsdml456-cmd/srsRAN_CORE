@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_metrics_json_generators.a CMakeFiles/srsran_metrics_json_generators.dir/executors.cpp.o CMakeFiles/srsran_metrics_json_generators.dir/o_du_high.cpp.o CMakeFiles/srsran_metrics_json_generators.dir/o_du_low.cpp.o CMakeFiles/srsran_metrics_json_generators.dir/resource_usage.cpp.o
+/usr/bin/ranlib libsrsran_metrics_json_generators.a

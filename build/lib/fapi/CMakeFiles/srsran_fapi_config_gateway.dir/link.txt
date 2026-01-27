@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_fapi_config_gateway.a CMakeFiles/srsran_fapi_config_gateway.dir/fapi_config_message_interface_collection_impl.cpp.o CMakeFiles/srsran_fapi_config_gateway.dir/config_message_gateway_impl.cpp.o CMakeFiles/srsran_fapi_config_gateway.dir/config_message_validator.cpp.o
+/usr/bin/ranlib libsrsran_fapi_config_gateway.a

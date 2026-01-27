@@ -1,0 +1,39 @@
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: srsran
+DocumentNamespace: https://srs.io/spdxdocs/srsran-d2f4b70dda${SBOM_EXT_DOCS}
+Creator: Organization: Software Radio Systems Ltd
+Creator: Tool: cmake-sbom
+CreatorComment: <text>This SPDX document was created from CMake 3.28.3, using cmake-sbom
+from https://github.com/DEMCON/cmake-sbom</text>
+Created: 2026-01-16T07:32:37Z
+
+PackageName: GNU
+SPDXID: SPDXRef-compiler
+PackageVersion: 11.4.0
+PackageDownloadLocation: NOASSERTION
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PackageSupplier: Organization: Anonymous
+FilesAnalyzed: false
+PackageSummary: <text>The compiler as identified by CMake, running on Linux (x86_64)</text>
+PrimaryPackagePurpose: APPLICATION
+Relationship: SPDXRef-compiler BUILD_DEPENDENCY_OF SPDXRef-Package-srsRAN-5G-CU-DU
+RelationshipComment: <text>SPDXRef-Package-srsRAN-5G-CU-DU is built by compiler GNU (/usr/bin/c++) version 11.4.0</text>
+
+PackageName: srsran
+SPDXID: SPDXRef-Package-srsRAN-5G-CU-DU
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/srsran@d2f4b70dda?download_url=https://github.com/srsran/srsRAN_Project.git
+PackageVersion: d2f4b70dda
+PackageSupplier: Organization: Software Radio Systems Ltd
+PackageDownloadLocation: https://github.com/srsran/srsRAN_Project.git
+PackageLicenseConcluded: LicenseRef-srsRAN
+PackageLicenseDeclared: LicenseRef-srsRAN
+PackageCopyrightText: 2026 Software Radio Systems Ltd
+PackageHomePage: https://srs.io
+PackageComment: <text>Built by CMake 3.28.3 with Release configuration for Linux (x86_64)</text>
+PackageVerificationCode: ${SBOM_VERIFICATION_CODE}
+BuiltDate: 2026-01-16T07:32:37Z
+Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-srsRAN-5G-CU-DU

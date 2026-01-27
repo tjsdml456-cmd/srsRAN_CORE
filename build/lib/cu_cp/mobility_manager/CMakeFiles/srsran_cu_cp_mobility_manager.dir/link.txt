@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_cu_cp_mobility_manager.a CMakeFiles/srsran_cu_cp_mobility_manager.dir/mobility_manager_impl.cpp.o CMakeFiles/srsran_cu_cp_mobility_manager.dir/metrics/mobility_manager_metrics_aggregator.cpp.o
+/usr/bin/ranlib libsrsran_cu_cp_mobility_manager.a

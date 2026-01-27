@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_prs_generator.a CMakeFiles/srsran_prs_generator.dir/prs/factories.cpp.o CMakeFiles/srsran_prs_generator.dir/prs/prs_generator_impl.cpp.o
+/usr/bin/ranlib libsrsran_prs_generator.a

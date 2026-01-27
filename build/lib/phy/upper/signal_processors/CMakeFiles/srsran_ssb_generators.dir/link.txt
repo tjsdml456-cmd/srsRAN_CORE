@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_ssb_generators.a CMakeFiles/srsran_ssb_generators.dir/ssb/factories.cpp.o CMakeFiles/srsran_ssb_generators.dir/ssb/dmrs_pbch_processor_impl.cpp.o CMakeFiles/srsran_ssb_generators.dir/ssb/pss_processor_impl.cpp.o CMakeFiles/srsran_ssb_generators.dir/ssb/sss_processor_impl.cpp.o CMakeFiles/srsran_ssb_generators.dir/dmrs_helper.cpp.o
+/usr/bin/ranlib libsrsran_ssb_generators.a

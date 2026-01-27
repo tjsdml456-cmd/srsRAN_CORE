@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_flexible_o_du_split_helpers_metrics_consumers.a CMakeFiles/srsran_flexible_o_du_split_helpers_metrics_consumers.dir/o_du_low_metrics_consumers.cpp.o CMakeFiles/srsran_flexible_o_du_split_helpers_metrics_consumers.dir/ru_metrics_consumers.cpp.o
+/usr/bin/ranlib libsrsran_flexible_o_du_split_helpers_metrics_consumers.a

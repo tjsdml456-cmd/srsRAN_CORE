@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_cu_cp_metrics_json_generators_helpers.a CMakeFiles/srsran_cu_cp_metrics_json_generators_helpers.dir/cu_cp_json_helper.cpp.o
+/usr/bin/ranlib libsrsran_cu_cp_metrics_json_generators_helpers.a

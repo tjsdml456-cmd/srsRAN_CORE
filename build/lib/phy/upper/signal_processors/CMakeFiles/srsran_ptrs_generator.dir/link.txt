@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_ptrs_generator.a CMakeFiles/srsran_ptrs_generator.dir/ptrs/ptrs_pdsch_generator_factory.cpp.o CMakeFiles/srsran_ptrs_generator.dir/ptrs/ptrs_pdsch_generator_impl.cpp.o
+/usr/bin/ranlib libsrsran_ptrs_generator.a

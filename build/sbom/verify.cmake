@@ -1,0 +1,15 @@
+
+		message(STATUS "Finalizing: /usr/local/share/srsran.spdx")
+		list(SORT SBOM_VERIFICATION_CODES)
+		string(REPLACE ";" "" SBOM_VERIFICATION_CODES "${SBOM_VERIFICATION_CODES}")
+		file(WRITE "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/verification.txt" "${SBOM_VERIFICATION_CODES}")
+		file(SHA1 "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/verification.txt" SBOM_VERIFICATION_CODE)
+		if(DEFINED ENV{DESTDIR})
+			set(_dest "$ENV{DESTDIR}/usr/local/share/srsran.spdx")
+		else()
+			set(_dest "/usr/local/share/srsran.spdx")
+		endif()
+		get_filename_component(_dest_dir "${_dest}" DIRECTORY)
+		file(MAKE_DIRECTORY "${_dest_dir}")
+		configure_file("/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in" "${_dest}" COPYONLY)
+		

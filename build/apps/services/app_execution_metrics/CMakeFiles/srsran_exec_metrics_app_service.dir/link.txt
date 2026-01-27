@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_exec_metrics_app_service.a CMakeFiles/srsran_exec_metrics_app_service.dir/executor_metrics_config_cli11_schema.cpp.o CMakeFiles/srsran_exec_metrics_app_service.dir/executor_metrics_config_yaml_writer.cpp.o CMakeFiles/srsran_exec_metrics_app_service.dir/metrics/app_execution_metrics_builder.cpp.o
+/usr/bin/ranlib libsrsran_exec_metrics_app_service.a

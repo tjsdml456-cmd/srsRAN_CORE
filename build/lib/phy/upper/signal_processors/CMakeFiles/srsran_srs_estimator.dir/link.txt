@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_srs_estimator.a CMakeFiles/srsran_srs_estimator.dir/srs/srs_estimator_factory.cpp.o CMakeFiles/srsran_srs_estimator.dir/srs/srs_estimator_generic_impl.cpp.o CMakeFiles/srsran_srs_estimator.dir/srs/srs_validator_generic_impl.cpp.o
+/usr/bin/ranlib libsrsran_srs_estimator.a

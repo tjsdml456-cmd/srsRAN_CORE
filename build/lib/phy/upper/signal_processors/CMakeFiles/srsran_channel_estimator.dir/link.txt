@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_channel_estimator.a CMakeFiles/srsran_channel_estimator.dir/channel_estimator/factories.cpp.o CMakeFiles/srsran_channel_estimator.dir/channel_estimator/port_channel_estimator_average_impl.cpp.o CMakeFiles/srsran_channel_estimator.dir/channel_estimator/port_channel_estimator_helpers.cpp.o
+/usr/bin/ranlib libsrsran_channel_estimator.a

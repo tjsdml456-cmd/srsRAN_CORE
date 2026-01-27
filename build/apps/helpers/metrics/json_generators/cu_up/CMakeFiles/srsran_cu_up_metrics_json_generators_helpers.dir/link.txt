@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_cu_up_metrics_json_generators_helpers.a CMakeFiles/srsran_cu_up_metrics_json_generators_helpers.dir/pdcp.cpp.o
+/usr/bin/ranlib libsrsran_cu_up_metrics_json_generators_helpers.a

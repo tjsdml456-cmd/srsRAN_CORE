@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_dmrs_pusch.a CMakeFiles/srsran_dmrs_pusch.dir/pusch/factories.cpp.o CMakeFiles/srsran_dmrs_pusch.dir/pusch/dmrs_pusch_estimator_impl.cpp.o CMakeFiles/srsran_dmrs_pusch.dir/dmrs_helper.cpp.o
+/usr/bin/ranlib libsrsran_dmrs_pusch.a
