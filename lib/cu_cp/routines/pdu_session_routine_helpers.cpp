@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -31,7 +31,8 @@ void srsran::srs_cu_cp::fill_e1ap_drb_pdcp_config(e1ap_pdcp_config& e1ap_pdcp_cf
   e1ap_pdcp_cfg.pdcp_sn_size_ul = cu_cp_pdcp_cfg.tx.sn_size;
   e1ap_pdcp_cfg.pdcp_sn_size_dl = cu_cp_pdcp_cfg.rx.sn_size;
   e1ap_pdcp_cfg.rlc_mod         = cu_cp_pdcp_cfg.rlc_mode;
-  e1ap_pdcp_cfg.discard_timer   = cu_cp_pdcp_cfg.tx.discard_timer;
+
+  e1ap_pdcp_cfg.discard_timer = cu_cp_pdcp_cfg.tx.discard_timer;
   if (cu_cp_pdcp_cfg.rx.t_reordering != pdcp_t_reordering::infinity) {
     e1ap_pdcp_cfg.t_reordering_timer = cu_cp_pdcp_cfg.rx.t_reordering;
   }
@@ -439,3 +440,4 @@ bool srsran::srs_cu_cp::update_setup_list_with_ue_ctxt_setup_response(
 
   return true;
 }
+

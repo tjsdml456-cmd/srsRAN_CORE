@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -24,6 +24,7 @@
 #include "../slicing/slice_ue_repository.h"
 #include "../support/csi_report_helpers.h"
 #include "../ue_scheduling/grant_params_selector.h"
+#include "srsran/srslog/srslog.h"
 #include <algorithm>
 
 using namespace srsran;
@@ -136,6 +137,16 @@ static double combine_qos_metrics(double                           pf_weight,
     pf_weight = std::max(1.0, pf_weight);
   }
 
+  // Log QoS metrics for debugging
+  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
+  logger.info("QoS Metrics - pf_weight={:.6f}, gbr_weight={:.6f}, prio_weight={:.6f}, delay_weight={:.6f}, "
+               "combined={:.6f}",
+               pf_weight,
+               gbr_weight,
+               prio_weight,
+               delay_weight,
+               gbr_weight * pf_weight * prio_weight * delay_weight);
+
   // The return is a combination of QoS priority, ARP priority, GBR and PF weight functions.
   return gbr_weight * pf_weight * prio_weight * delay_weight;
 }
@@ -156,6 +167,7 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
   uint16_t                  min_combined_prio       = max_combined_prio_level;
   double                    gbr_weight              = 0;
   double                    delay_weight            = 0;
+  static auto&              logger                  = srslog::fetch_basic_logger("SCHED", false);
   if (policy_params.gbr_enabled or policy_params.priority_enabled or policy_params.pdb_enabled) {
     for (logical_channel_config_ptr lc : *u.logical_channels()) {
       if (not u.contains(lc->lcid) or not lc->qos.has_value() or u.pending_dl_newtx_bytes(lc->lcid) == 0) {
@@ -173,7 +185,33 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
       if (hol_toa.valid() and slot_tx >= hol_toa) {
         const unsigned hol_delay_ms = (slot_tx - hol_toa) / slot_tx.nof_slots_per_subframe();
         const unsigned pdb          = lc->qos->qos.packet_delay_budget_ms;
-        delay_weight += hol_delay_ms / static_cast<double>(pdb);
+        double delay_contrib = hol_delay_ms / static_cast<double>(pdb);
+        delay_weight += delay_contrib;
+        
+        // Log delay_weight calculation details (periodically)
+        static unsigned delay_log_counter = 0;
+        if ((delay_log_counter++ % 100) == 0) {
+          logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa={} slot_tx={} hol_delay_ms={} PDB={}ms delay_contrib={:.3f} delay_weight={:.3f}",
+                      u.ue_index(),
+                      fmt::underlying(lc->lcid),
+                      hol_toa.to_uint(),
+                      slot_tx.to_uint(),
+                      hol_delay_ms,
+                      pdb,
+                      delay_contrib,
+                      delay_weight);
+        }
+      } else {
+        // Log when hol_toa is invalid or condition not met (periodically)
+        static unsigned hol_toa_log_counter = 0;
+        if ((hol_toa_log_counter++ % 100) == 0) {
+          logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa_valid={} hol_toa={} slot_tx={} (condition not met, delay_weight not updated)",
+                      u.ue_index(),
+                      fmt::underlying(lc->lcid),
+                      hol_toa.valid(),
+                      hol_toa.valid() ? hol_toa.to_uint() : 0,
+                      slot_tx.to_uint());
+        }
       }
 
       if (not lc->qos->gbr_qos_info.has_value()) {
@@ -184,7 +222,25 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
       // GBR flow.
       double dl_avg_rate = u.dl_avg_bit_rate(lc->lcid);
       if (dl_avg_rate != 0) {
-        gbr_weight += std::min(lc->qos->gbr_qos_info->gbr_dl / dl_avg_rate, max_metric_weight);
+        // NOTE: dl_avg_rate is based on scheduled bytes, not actually transmitted bytes.
+        // This means avg_rate can be higher than actual transmission rate due to:
+        // - HARQ retransmissions (scheduled but not successfully transmitted)
+        // - Channel conditions (scheduled but failed transmission)
+        // Therefore, gbr_weight calculation may underestimate GBR guarantee needs.
+        double calculated_gbr_weight = lc->qos->gbr_qos_info->gbr_dl / dl_avg_rate;
+        
+        // Apply correction: if avg_rate > GBR_DL, it means scheduled rate is higher than GBR,
+        // but actual transmission rate might be lower. We need to ensure GBR guarantee.
+        // If calculated_gbr_weight < 1.0, it means avg_rate > GBR_DL, which suggests
+        // we might need to prioritize GBR guarantee even if scheduled rate is high.
+        // However, we should still use the calculated weight as-is, since the scheduler
+        // should allocate resources based on scheduled bytes, not actual transmitted bytes.
+        gbr_weight += std::min(calculated_gbr_weight, max_metric_weight);
+        
+        // Debug log for GBR weight calculation
+        logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, avg_rate={} bps, calculated_gbr_weight={:.6f}, "
+                    "final_gbr_weight={:.6f}",
+                    fmt::underlying(lc->lcid), lc->qos->gbr_qos_info->gbr_dl, dl_avg_rate, calculated_gbr_weight, gbr_weight);
       } else {
         gbr_weight += max_metric_weight;
       }
@@ -192,14 +248,39 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
   }
 
   // If no QoS flows are configured, the weight is set to 1.0.
+  double delay_weight_before = delay_weight;
   gbr_weight   = policy_params.gbr_enabled and gbr_weight != 0 ? gbr_weight : 1.0;
   delay_weight = policy_params.pdb_enabled and delay_weight != 0 ? delay_weight : 1.0;
+  
+  // Log delay_weight final value and reason (periodically)
+  static unsigned delay_final_log_counter = 0;
+  if ((delay_final_log_counter++ % 100) == 0) {
+    logger.info("[DELAY-WEIGHT-FINAL] UE{} delay_weight_before={:.3f} pdb_enabled={} delay_weight_after={:.3f} (reason: {})",
+                u.ue_index(),
+                delay_weight_before,
+                policy_params.pdb_enabled,
+                delay_weight,
+                (policy_params.pdb_enabled and delay_weight_before != 0) ? "calculated" : 
+                (not policy_params.pdb_enabled) ? "pdb_disabled" : "delay_weight_was_zero");
+  }
 
   double pf_weight = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
   // If priority is disabled, set the priority weight of all UEs to 1.0.
   double prio_weight = policy_params.priority_enabled ? (max_combined_prio_level + 1 - min_combined_prio) /
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
+
+  // Log DL Priority calc (periodically)
+  static unsigned dl_prio_log_counter = 0;
+  if ((dl_prio_log_counter++ % 100) == 0) {
+    logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
+                u.ue_index(),
+                min_combined_prio,
+                prio_weight,
+                pf_weight,
+                gbr_weight,
+                delay_weight);
+  }
 
   // The return is a combination of ARP and QoS priorities, GBR and PF weight functions.
   return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, delay_weight, policy_params);
@@ -256,6 +337,17 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
   double pf_weight   = compute_pf_metric(estim_ul_rate, avg_ul_rate, policy_params.pf_fairness_coeff);
+
+  // Log UL QoS weights before combining
+  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
+  logger.info("UL QoS Weights - ue={}, pf_weight={:.6f}, gbr_weight={:.6f}, prio_weight={:.6f}, "
+               "delay_weight=1.0, estim_rate={:.2f}, avg_rate={:.2f}",
+               u.ue_index(),
+               pf_weight,
+               gbr_weight,
+               prio_weight,
+               estim_ul_rate,
+               avg_ul_rate);
 
   return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, 1.0, policy_params);
 }
@@ -415,3 +507,4 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
+

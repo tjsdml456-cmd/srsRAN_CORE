@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -26,6 +26,21 @@
 #include "srsran/ran/pdsch/pdsch_constants.h"
 
 using namespace srsran;
+
+namespace {
+/// Helper function to convert steady_clock::time_point to system_clock::time_point
+/// This is needed because rlc_buffer_state.hol_toa uses system_clock for compatibility with upper layers.
+std::optional<std::chrono::system_clock::time_point>
+convert_steady_to_system(const std::optional<std::chrono::steady_clock::time_point>& steady_tp)
+{
+  if (not steady_tp.has_value()) {
+    return std::nullopt;
+  }
+  auto now_steady = std::chrono::steady_clock::now();
+  auto delay      = now_steady - steady_tp.value();
+  return std::chrono::system_clock::now() - std::chrono::duration_cast<std::chrono::system_clock::duration>(delay);
+}
+} // namespace
 
 rlc_tx_um_entity::rlc_tx_um_entity(gnb_du_id_t                          du_id,
                                    du_ue_index_t                        ue_index,
@@ -335,11 +350,11 @@ rlc_buffer_state rlc_tx_um_entity::get_buffer_state()
   uint32_t segment_bytes = 0;
   if (not sdu.buf.empty()) {
     segment_bytes = (sdu.buf.length() - next_so) + head_len_not_first;
-    bs.hol_toa    = sdu.time_of_arrival;
+    bs.hol_toa    = convert_steady_to_system(sdu.time_of_arrival);
   } else {
     const rlc_sdu* next_sdu = sdu_queue.front();
     if (next_sdu != nullptr) {
-      bs.hol_toa = next_sdu->time_of_arrival;
+      bs.hol_toa = convert_steady_to_system(next_sdu->time_of_arrival);
     }
   }
 
@@ -349,3 +364,4 @@ rlc_buffer_state rlc_tx_um_entity::get_buffer_state()
   }
   return bs;
 }
+

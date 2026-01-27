@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -343,6 +343,104 @@ static bool update_modify_list_with_bearer_ctxt_mod_response(
       ue_context_mod_request.drbs_to_be_setup_mod_list.push_back(drb_setup_mod_item);
     }
 
+    // Process DRB modification list (for existing DRBs with QoS changes)
+    for (const auto& e1ap_drb_modified_item : e1ap_item.drb_modified_list_ng_ran) {
+      const auto& drb_id = e1ap_drb_modified_item.drb_id;
+      
+      // Check if this DRB is in the modify list
+      if (next_config.pdu_sessions_to_modify_list.at(psi).drb_to_modify.find(drb_id) ==
+          next_config.pdu_sessions_to_modify_list.at(psi).drb_to_modify.end()) {
+        logger.warning("Modified DRB {} not part of next configuration modify list", drb_id);
+        continue;
+      }
+
+      const auto& request_transfer = ngap_modify_list[psi].transfer;
+
+      // Update DRB QoS information in next_config from E1AP response
+      auto& drb_to_modify = next_config.pdu_sessions_to_modify_list.at(psi).drb_to_modify.at(drb_id);
+      
+      // Update QoS information from flow_setup_list (QoS flows that were successfully modified)
+      for (const auto& e1ap_flow : e1ap_drb_modified_item.flow_setup_list) {
+        // Find the QoS flow in the request to get QoS parameters
+        if (request_transfer.qos_flow_add_or_modify_request_list.contains(e1ap_flow.qos_flow_id)) {
+          const auto& qos_flow_request = request_transfer.qos_flow_add_or_modify_request_list[e1ap_flow.qos_flow_id];
+          
+          // Update QoS flow parameters in DRB config
+          if (drb_to_modify.qos_flows.find(e1ap_flow.qos_flow_id) != drb_to_modify.qos_flows.end()) {
+            drb_to_modify.qos_flows[e1ap_flow.qos_flow_id].qos_params = qos_flow_request.qos_flow_level_qos_params;
+          }
+          
+          // Update DRB-level QoS from the first QoS flow (assuming all flows on same DRB have same 5QI)
+          // This is a simplification - in practice, DRB QoS should be derived from all mapped flows
+          if (drb_to_modify.qos_flows.find(e1ap_flow.qos_flow_id) != drb_to_modify.qos_flows.end()) {
+            drb_to_modify.qos_params.qos_desc = qos_flow_request.qos_flow_level_qos_params.qos_desc;
+            drb_to_modify.qos_params.alloc_retention_prio = qos_flow_request.qos_flow_level_qos_params.alloc_retention_prio;
+            drb_to_modify.qos_params.gbr_qos_info = qos_flow_request.qos_flow_level_qos_params.gbr_qos_info;
+            
+            // Log GBR information update
+            if (qos_flow_request.qos_flow_level_qos_params.gbr_qos_info.has_value()) {
+              logger.info("[CU-CP-MODIFY] Updated DRB {} QoS: 5QI={}, GBR_DL={} bps ({:.2f} Mbps), "
+                          "GBR_UL={} bps ({:.2f} Mbps), MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
+                          drb_id,
+                          drb_to_modify.qos_params.qos_desc.get_5qi(),
+                          drb_to_modify.qos_params.gbr_qos_info.value().gbr_dl,
+                          drb_to_modify.qos_params.gbr_qos_info.value().gbr_dl / 1000000.0,
+                          drb_to_modify.qos_params.gbr_qos_info.value().gbr_ul,
+                          drb_to_modify.qos_params.gbr_qos_info.value().gbr_ul / 1000000.0,
+                          drb_to_modify.qos_params.gbr_qos_info.value().max_br_dl,
+                          drb_to_modify.qos_params.gbr_qos_info.value().max_br_dl / 1000000.0,
+                          drb_to_modify.qos_params.gbr_qos_info.value().max_br_ul,
+                          drb_to_modify.qos_params.gbr_qos_info.value().max_br_ul / 1000000.0);
+            } else {
+              logger.warning("[CU-CP-MODIFY] DRB {} QoS update: 5QI={}, but GBR info is NOT present in QoS flow request",
+                             drb_id,
+                             drb_to_modify.qos_params.qos_desc.get_5qi());
+            }
+          }
+        }
+
+        // Fill added/modified flows in NGAP response transfer
+        if (!ngap_item.transfer.qos_flow_add_or_modify_response_list.has_value()) {
+          ngap_item.transfer.qos_flow_add_or_modify_response_list.emplace();
+        }
+
+        qos_flow_add_or_mod_response_item qos_flow;
+        qos_flow.qos_flow_id = e1ap_flow.qos_flow_id;
+        ngap_item.transfer.qos_flow_add_or_modify_response_list.value().emplace(qos_flow.qos_flow_id, qos_flow);
+      }
+
+      // Create F1AP DRB modify item with updated QoS information
+      f1ap_drb_to_modify drb_modify_item;
+      drb_modify_item.drb_id = drb_id;
+      // Get UL UP TNL info from E1AP response
+      for (const auto& ul_up_param : e1ap_drb_modified_item.ul_up_transport_params) {
+        drb_modify_item.uluptnl_info_list.push_back(ul_up_param.up_tnl_info);
+      }
+      
+      // Fill QoS information for DRB modification (so DU can update its internal DRB QoS config)
+      f1ap_drb_info qos_info;
+      qos_info.drb_qos = drb_to_modify.qos_params;
+      qos_info.s_nssai = drb_to_modify.s_nssai;
+      
+      // Fill QoS flows mapped to this DRB
+      for (const auto& flow : drb_to_modify.qos_flows) {
+        flow_mapped_to_drb flow_item;
+        flow_item.qos_flow_id               = flow.first;
+        flow_item.qos_flow_level_qos_params = flow.second.qos_params;
+        qos_info.flows_mapped_to_drb_list.push_back(flow_item);
+      }
+      
+      drb_modify_item.qos_info = qos_info;
+      
+      logger.info("Creating F1AP DRB modify item for DRB {}: 5QI={}, has_qos_info={}, nof_flows={}",
+                  drb_id,
+                  drb_to_modify.qos_params.qos_desc.get_5qi(),
+                  drb_modify_item.qos_info.has_value(),
+                  qos_info.flows_mapped_to_drb_list.size());
+      
+      ue_context_mod_request.drbs_to_be_modified_list.push_back(drb_modify_item);
+    }
+
     // Add DRB to be removed to UE context modification.
     for (const auto& drb_id : next_config.pdu_sessions_to_modify_list.at(psi).drb_to_remove) {
       ue_context_mod_request.drbs_to_be_released_list.push_back(drb_id);
@@ -539,3 +637,4 @@ pdu_session_resource_modification_routine::generate_pdu_session_resource_modify_
   }
   return response_msg;
 }
+

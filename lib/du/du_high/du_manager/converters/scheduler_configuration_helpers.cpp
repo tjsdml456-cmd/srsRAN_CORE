@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -25,6 +25,7 @@
 #include "srsran/du/du_cell_config.h"
 #include "srsran/scheduler/config/logical_channel_config_factory.h"
 #include "srsran/scheduler/config/sched_cell_config_helpers.h"
+#include "srsran/srslog/srslog.h"
 
 using namespace srsran;
 using namespace srs_du;
@@ -139,12 +140,41 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
     sched_lc_ch.rrm_policy.s_nssai = drb.s_nssai;
     sched_lc_ch.rrm_policy.plmn_id = ue_ctx.nr_cgi.plmn_id;
     sched_lc_ch.qos.emplace();
-    sched_lc_ch.qos->qos          = *get_5qi_to_qos_characteristics_mapping(drb.qos.qos_desc.get_5qi());
+
+    five_qi_t five_qi           = drb.qos.qos_desc.get_5qi();
+    sched_lc_ch.qos->qos        = *get_5qi_to_qos_characteristics_mapping(five_qi);
     sched_lc_ch.qos->arp_priority = drb.qos.alloc_retention_prio.prio_level_arp;
     sched_lc_ch.qos->gbr_qos_info = drb.qos.gbr_qos_info;
+
+    // Log logical channel QoS configuration (5QI and GBR values)
+    static auto& logger = srslog::fetch_basic_logger("DU-MGR", false);
+    if (drb.qos.gbr_qos_info.has_value()) {
+      logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, "
+                  "GBR_DL={} bps ({:.2f} Mbps), GBR_UL={} bps ({:.2f} Mbps), "
+                  "MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
+                  ue_ctx.ue_index,
+                  drb.drb_id,
+                  fmt::underlying(drb.lcid),
+                  static_cast<int>(five_qi),
+                  drb.qos.gbr_qos_info.value().gbr_dl,
+                  drb.qos.gbr_qos_info.value().gbr_dl / 1000000.0,
+                  drb.qos.gbr_qos_info.value().gbr_ul,
+                  drb.qos.gbr_qos_info.value().gbr_ul / 1000000.0,
+                  drb.qos.gbr_qos_info.value().max_br_dl,
+                  drb.qos.gbr_qos_info.value().max_br_dl / 1000000.0,
+                  drb.qos.gbr_qos_info.value().max_br_ul,
+                  drb.qos.gbr_qos_info.value().max_br_ul / 1000000.0);
+    } else {
+      logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, has_gbr=false (non-GBR flow)",
+                  ue_ctx.ue_index,
+                  drb.drb_id,
+                  fmt::underlying(drb.lcid),
+                  static_cast<int>(five_qi));
+    }
   }
   sched_cfg.drx_cfg      = ue_res_cfg.cell_group.mcg_cfg.drx_cfg;
   sched_cfg.meas_gap_cfg = ue_res_cfg.meas_gap;
 
   return sched_cfg;
 }
+

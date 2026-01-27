@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -30,6 +30,21 @@
 #include "srsran/support/tracing/event_tracing.h"
 
 using namespace srsran;
+
+namespace {
+/// Helper function to convert steady_clock::time_point to system_clock::time_point
+/// This is needed because rlc_buffer_state.hol_toa uses system_clock for compatibility with upper layers.
+std::optional<std::chrono::system_clock::time_point>
+convert_steady_to_system(const std::optional<std::chrono::steady_clock::time_point>& steady_tp)
+{
+  if (not steady_tp.has_value()) {
+    return std::nullopt;
+  }
+  auto now_steady = std::chrono::steady_clock::now();
+  auto delay      = now_steady - steady_tp.value();
+  return std::chrono::system_clock::now() - std::chrono::duration_cast<std::chrono::system_clock::duration>(delay);
+}
+} // namespace
 
 rlc_tx_am_entity::rlc_tx_am_entity(gnb_du_id_t                          gnb_du_id,
                                    du_ue_index_t                        ue_index,
@@ -978,7 +993,7 @@ void rlc_tx_am_entity::decrement_retx_count(uint32_t sn)
 void rlc_tx_am_entity::check_sn_reached_max_retx(uint32_t sn)
 {
   if (tx_window[sn].retx_count == cfg.max_retx_thresh) {
-    logger.log_warning("Reached maximum number of RETX. sn={} retx_count={}", sn, tx_window[sn].retx_count);
+    logger.log_info("Reached maximum number of RETX. sn={} retx_count={}", sn, tx_window[sn].retx_count);
     upper_cn.on_max_retx();
   }
 }
@@ -1029,14 +1044,14 @@ rlc_buffer_state rlc_tx_am_entity::get_buffer_state()
     if (tx_window.has_sn(sn_under_segmentation)) {
       rlc_tx_am_sdu_info& sdu_info = tx_window[sn_under_segmentation];
       segment_bytes                = sdu_info.sdu.length() - sdu_info.next_so + head_max_size;
-      bs.hol_toa                   = sdu_info.time_of_arrival;
+      bs.hol_toa                   = convert_steady_to_system(sdu_info.time_of_arrival);
     } else {
       logger.log_info("Buffer state ignores SDU under segmentation. sn={} not in tx_window.", sn_under_segmentation);
     }
   } else {
     const rlc_sdu* next_sdu = sdu_queue.front();
     if (next_sdu != nullptr) {
-      bs.hol_toa = next_sdu->time_of_arrival;
+      bs.hol_toa = convert_steady_to_system(next_sdu->time_of_arrival);
     }
   }
 
@@ -1051,7 +1066,7 @@ rlc_buffer_state rlc_tx_am_entity::get_buffer_state()
     retx_queue.pop();
   }
   if (!retx_queue.empty()) {
-    bs.hol_toa = tx_window[retx_queue.front().sn].time_of_arrival;
+    bs.hol_toa = convert_steady_to_system(tx_window[retx_queue.front().sn].time_of_arrival);
   }
 
   // status report size
@@ -1291,3 +1306,4 @@ bool rlc_tx_am_entity::valid_nack(uint32_t ack_sn, const rlc_am_status_nack& nac
   }
   return true;
 }
+

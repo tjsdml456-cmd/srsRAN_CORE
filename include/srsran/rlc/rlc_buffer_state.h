@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -36,7 +36,8 @@ struct rlc_buffer_state {
   /// Amount of bytes pending for transmission.
   unsigned pending_bytes = 0;
   /// Head of line (HOL) time of arrival (TOA) holds the TOA of the oldest SDU or ReTx that is queued for transmission.
-  std::optional<std::chrono::time_point<std::chrono::steady_clock>> hol_toa;
+  /// Note: Using system_clock instead of steady_clock for compatibility with upper layers (MAC/Scheduler).
+  std::optional<std::chrono::time_point<std::chrono::system_clock>> hol_toa;
 };
 } // namespace srsran
 
@@ -64,3 +65,4 @@ struct formatter<srsran::rlc_buffer_state> {
   }
 };
 } // namespace fmt
+

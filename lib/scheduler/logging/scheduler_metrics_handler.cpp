@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -635,6 +635,33 @@ cell_metrics_handler::ue_metric_context::compute_report(std::chrono::millisecond
   ret.dl_nof_nok          = data.count_uci_harqs - data.count_uci_harq_acks;
   ret.ul_nof_ok           = data.count_crc_acks;
   ret.ul_nof_nok          = data.count_crc_pdus - data.count_crc_acks;
+  
+  // Log throughput calculation for Python script parsing
+  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
+  double       dl_brate_mbps = ret.dl_brate_kbps / 1000.0;
+  double       ul_brate_mbps = ret.ul_brate_kbps / 1000.0;
+  if (ret.ul_brate_kbps > 0) {
+    logger.info("UE{} Throughput calc: sum_dl_tb_bytes={}, period={}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), "
+                "dl_nof_ok={}, ul_brate_kbps={:.2f} (={:.2f}Mbps), ul_nof_ok={}",
+                ue_index,
+                data.sum_dl_tb_bytes,
+                metric_report_period.count(),
+                ret.dl_brate_kbps,
+                dl_brate_mbps,
+                ret.dl_nof_ok,
+                ret.ul_brate_kbps,
+                ul_brate_mbps,
+                ret.ul_nof_ok);
+  } else {
+    logger.info("UE{} Throughput calc: sum_dl_tb_bytes={}, period={}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), "
+                "dl_nof_ok={}",
+                ue_index,
+                data.sum_dl_tb_bytes,
+                metric_report_period.count(),
+                ret.dl_brate_kbps,
+                dl_brate_mbps,
+                ret.dl_nof_ok);
+  }
   ret.pusch_snr_db        = data.nof_pusch_snr_reports > 0 ? data.sum_pusch_snrs / data.nof_pusch_snr_reports : 0;
   ret.pusch_rsrp_db       = data.nof_pusch_rsrp_reports > 0 ? data.sum_pusch_rsrp / data.nof_pusch_rsrp_reports
                                                             : -std::numeric_limits<float>::infinity();
@@ -715,3 +742,4 @@ void scheduler_metrics_handler::rem_cell(du_cell_index_t cell_index)
 {
   cells.erase(cell_index);
 }
+

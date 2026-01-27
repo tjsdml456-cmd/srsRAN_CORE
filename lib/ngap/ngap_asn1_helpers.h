@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -32,6 +32,7 @@
 #include "srsran/ngap/ngap_handover.h"
 #include "srsran/ngap/ngap_init_context_setup.h"
 #include "srsran/ngap/ngap_nas.h"
+#include "srsran/ngap/ngap_rrc_inactive_transition.h"
 #include "srsran/ngap/ngap_setup.h"
 #include "srsran/ngap/ngap_types.h"
 #include "srsran/ran/cu_types.h"
@@ -179,8 +180,7 @@ inline void fill_asn1_initial_ue_message(asn1::ngap::init_ue_msg_s&      asn1_ms
 {
   asn1_msg->nas_pdu = msg.nas_pdu.copy();
 
-  asn1_msg->rrc_establishment_cause.value =
-      static_cast<asn1::ngap::rrc_establishment_cause_opts::options>(msg.establishment_cause);
+  asn1_msg->rrc_establishment_cause = establishment_cause_to_asn1(msg.establishment_cause);
 
   auto& user_loc_info_nr = asn1_msg->user_location_info.set_user_location_info_nr();
   user_loc_info_nr       = cu_cp_user_location_info_to_asn1(msg.user_location_info);
@@ -326,6 +326,25 @@ inline bool fill_cu_cp_pdu_session_resource_setup_item_base(cu_cp_pdu_session_re
     if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
       qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info =
           ngap_asn1_to_gbr_qos_flow_information(asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info);
+      
+      // Log GBR information from NGAP message
+      static auto& logger = srslog::fetch_basic_logger("NGAP", false);
+      logger.info("[NGAP-PARSE] QoS Flow {}: GBR info present - GBR_DL={} bps ({:.2f} Mbps), "
+                  "GBR_UL={} bps ({:.2f} Mbps), MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
+                  qos_flow_setup_req_item.qos_flow_id,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_dl,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_dl / 1000000.0,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_ul,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_ul / 1000000.0,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_dl,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_dl / 1000000.0,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul,
+                  qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul / 1000000.0);
+    } else {
+      // Log when GBR info is not present
+      static auto& logger = srslog::fetch_basic_logger("NGAP", false);
+      logger.warning("[NGAP-PARSE] QoS Flow {}: GBR info NOT present in NGAP message", 
+                     qos_flow_setup_req_item.qos_flow_id);
     }
 
     if (asn1_flow_item.qos_flow_level_qos_params.reflective_qos_attribute_present) {
@@ -619,6 +638,41 @@ inline bool fill_cu_cp_pdu_session_resource_modify_item_base(
         qos_flow_add_item.qos_flow_level_qos_params.alloc_retention_prio.is_preemptable =
             asn1_flow_item.qos_flow_level_qos_params.alloc_and_retention_prio.pre_emption_vulnerability.value ==
             asn1::ngap::pre_emption_vulnerability_opts::pre_emptable;
+
+        // Optional parameters.
+        if (asn1_flow_item.qos_flow_level_qos_params.add_qos_flow_info_present) {
+          qos_flow_add_item.qos_flow_level_qos_params.add_qos_flow_info =
+              asn1_flow_item.qos_flow_level_qos_params.add_qos_flow_info.to_string();
+        }
+
+        // Fill GBR QoS information if present
+        if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
+          qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info =
+              ngap_asn1_to_gbr_qos_flow_information(asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info);
+          
+          // Log GBR information from NGAP message
+          static auto& logger = srslog::fetch_basic_logger("NGAP", false);
+          logger.info("[NGAP-PARSE] QoS Flow {} (Modify): GBR info present - GBR_DL={} bps ({:.2f} Mbps), "
+                      "GBR_UL={} bps ({:.2f} Mbps), MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
+                      qos_flow_add_item.qos_flow_id,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_dl,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_dl / 1000000.0,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_ul,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().gbr_ul / 1000000.0,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_dl,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_dl / 1000000.0,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul,
+                      qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul / 1000000.0);
+        } else {
+          // Log when GBR info is not present
+          static auto& logger = srslog::fetch_basic_logger("NGAP", false);
+          logger.warning("[NGAP-PARSE] QoS Flow {} (Modify): GBR info NOT present in NGAP message", 
+                         qos_flow_add_item.qos_flow_id);
+        }
+
+        if (asn1_flow_item.qos_flow_level_qos_params.reflective_qos_attribute_present) {
+          qos_flow_add_item.qos_flow_level_qos_params.reflective_qos_attribute_subject_to = true;
+        }
       }
 
       modify_item.transfer.qos_flow_add_or_modify_request_list.emplace(qos_flow_add_item.qos_flow_id,
@@ -1142,5 +1196,24 @@ fill_asn1_ul_ran_status_transfer(asn1::ngap::ul_ran_status_transfer_s&          
   }
 }
 
+/// \brief Convert common type RRC Inactive Transition Report to NGAP ASN1 RRC Inactive Transition Report.
+/// \param[out] asn1_report The ASN1 NGAP RRC Inactive Transition Report.
+/// \param[in] report The CU-CP RRC Inactive Transition Report.
+inline void fill_asn1_rrc_inactive_transition_report(asn1::ngap::rrc_inactive_transition_report_s& asn1_report,
+                                                     const ngap_rrc_inactive_transition_report&    report)
+{
+  // Fill RRC state.
+  if (report.rrc_state == ngap_rrc_inactive_transition_report::ngap_rrc_state::inactive) {
+    asn1_report->rrc_state = asn1::ngap::rrc_state_opts::inactive;
+  } else {
+    asn1_report->rrc_state = asn1::ngap::rrc_state_opts::connected;
+  }
+
+  // Fill user location info.
+  auto& user_loc_info_nr = asn1_report->user_location_info.set_user_location_info_nr();
+  user_loc_info_nr       = cu_cp_user_location_info_to_asn1(report.user_location_info);
+}
+
 } // namespace srs_cu_cp
 } // namespace srsran
+

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -121,3 +121,4 @@ bool update_setup_list_with_ue_ctxt_setup_response(e1ap_bearer_context_modificat
 
 } // namespace srs_cu_cp
 } // namespace srsran
+

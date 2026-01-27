@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -87,6 +87,8 @@ struct f1ap_drb_to_modify {
   drb_id_t drb_id = drb_id_t::invalid;
   /// UL Transport layer info for the given DRB. See ulUPTNLInformation-ToBeSetup-List in TS 38.473.
   std::vector<up_transport_layer_info> uluptnl_info_list;
+  /// QoS Information of the DRB (optional, only included when QoS parameters are modified).
+  std::optional<f1ap_drb_info> qos_info;
 };
 
 /// Parameters of a setup/modified DRB in the DU UE context.
@@ -110,3 +112,4 @@ struct f1ap_drb_failed_to_setupmod {
 };
 
 } // namespace srsran
+

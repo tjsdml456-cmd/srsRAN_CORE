@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -23,6 +23,7 @@
 #include "du_bearer_resource_manager.h"
 #include "srsran/mac/config/mac_config_helpers.h"
 #include "srsran/rlc/rlc_srb_config_factory.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 
 using namespace srsran;
 using namespace srs_du;
@@ -233,11 +234,68 @@ std::vector<drb_id_t> du_bearer_resource_manager::modify_drbs(du_ue_resource_con
   std::vector<drb_id_t> failed_drbs;
 
   for (const f1ap_drb_to_modify& drb_to_modify : upd_req.drbs_to_mod) {
+    logger.info("Processing DRB modification request for DRB {}", drb_to_modify.drb_id);
+    
     auto res = validate_drb_modification_request(drb_to_modify, ue_cfg.drbs);
     if (not res.has_value()) {
       logger.warning("Failed to modify {}. Cause: {}", drb_to_modify.drb_id, res.error());
       failed_drbs.push_back(drb_to_modify.drb_id);
       continue;
+    }
+
+    // Check if QoS info is provided
+    if (not drb_to_modify.qos_info.has_value()) {
+      logger.warning("DRB {} modification request does not include QoS info - QoS will not be updated", 
+                     drb_to_modify.drb_id);
+      continue;
+    }
+
+    // Update DRB QoS information if provided
+    if (drb_to_modify.qos_info.has_value()) {
+      auto& existing_drb = ue_cfg.drbs[drb_to_modify.drb_id];
+      
+      // Get old 5QI for logging
+      five_qi_t old_5qi = existing_drb.qos.qos_desc.get_5qi();
+      
+      // Update DRB-level QoS parameters
+      existing_drb.qos = drb_to_modify.qos_info.value().drb_qos;
+      
+      // Update S-NSSAI if provided
+      existing_drb.s_nssai = drb_to_modify.qos_info.value().s_nssai;
+      
+      five_qi_t new_5qi = existing_drb.qos.qos_desc.get_5qi();
+      
+      // Get priority level from 5QI mapping for logging
+      const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(new_5qi);
+      if (qos_chars != nullptr) {
+        // Log GBR information if present
+        if (existing_drb.qos.gbr_qos_info.has_value()) {
+          logger.info("Updated QoS for DRB {}: 5QI={}->{}, priority_level={}, ARP_priority={}, "
+                      "GBR_DL={} bps, GBR_UL={} bps, MBR_DL={} bps, MBR_UL={} bps", 
+                      drb_to_modify.drb_id, 
+                      old_5qi,
+                      new_5qi,
+                      qos_chars->priority.value(),
+                      existing_drb.qos.alloc_retention_prio.prio_level_arp.value(),
+                      existing_drb.qos.gbr_qos_info.value().gbr_dl,
+                      existing_drb.qos.gbr_qos_info.value().gbr_ul,
+                      existing_drb.qos.gbr_qos_info.value().max_br_dl,
+                      existing_drb.qos.gbr_qos_info.value().max_br_ul);
+        } else {
+          logger.info("Updated QoS for DRB {}: 5QI={}->{}, priority_level={}, ARP_priority={}, "
+                      "GBR=not present (non-GBR flow)", 
+                      drb_to_modify.drb_id, 
+                      old_5qi,
+                      new_5qi,
+                      qos_chars->priority.value(),
+                      existing_drb.qos.alloc_retention_prio.prio_level_arp.value());
+        }
+      } else {
+        logger.warning("Updated QoS for DRB {}: 5QI={}->{}, but no QoS characteristics mapping found", 
+                       drb_to_modify.drb_id, 
+                       old_5qi,
+                       new_5qi);
+      }
     }
   }
 
@@ -257,3 +315,4 @@ void du_bearer_resource_manager::rem_drbs(du_ue_resource_config&                
     ue_cfg.drbs.erase(drb_id);
   }
 }
+

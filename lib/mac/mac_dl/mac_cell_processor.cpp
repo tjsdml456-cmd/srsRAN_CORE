@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -563,6 +563,9 @@ void mac_cell_processor::update_logical_channel_dl_buffer_states(const dl_sched_
         rlc_buffer_state                       rlc_bs = bearer->on_buffer_state_update();
         mac_dl_buffer_state_indication_message bs{
             ue_mng.get_ue_index(grant.pdsch_cfg.rnti), lc_info.lcid.to_lcid(), rlc_bs.pending_bytes};
+        if (rlc_bs.hol_toa.has_value()) {
+          bs.hol_toa = rlc_bs.hol_toa.value();  // RLC에서 받은 hol_toa 전달
+        }
         sched.handle_dl_buffer_state_update(bs);
       }
     }
@@ -649,3 +652,4 @@ void mac_cell_processor::write_tx_pdu_pcap(slot_point                sl_tx,
     }
   }
 }
+

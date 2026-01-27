@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -275,18 +275,22 @@ static drb_id_t modify_qos_flow(up_pdu_session_context_update&     new_session_c
 
   drb_id_t drb_id = full_context.qos_flow_map.at(qos_flow.qos_flow_id);
 
-  up_drb_context drb_ctx;
-  drb_ctx.drb_id         = drb_id;
-  drb_ctx.pdu_session_id = new_session_context.id;
-  drb_ctx.qos_params     = qos_flow.qos_flow_level_qos_params;
+  // Get existing DRB context to preserve all existing information
+  const auto& existing_drb = full_context.pdu_sessions.at(new_session_context.id).drbs.at(drb_id);
 
-  // Add flow.
+  // Start with existing DRB context to preserve all information
+  up_drb_context drb_ctx = existing_drb;
+
+  // Update QoS parameters for the DRB (use the modified QoS flow's parameters)
+  drb_ctx.qos_params = qos_flow.qos_flow_level_qos_params;
+
+  // Update the specific QoS flow that was modified
   up_qos_flow_context flow_ctx;
   flow_ctx.qfi        = qos_flow.qos_flow_id;
   flow_ctx.qos_params = qos_flow.qos_flow_level_qos_params;
-  drb_ctx.qos_flows.emplace(flow_ctx.qfi, flow_ctx);
+  drb_ctx.qos_flows[flow_ctx.qfi] = flow_ctx; // Update or add the modified flow
 
-  // Set PDCP/SDAP config.
+  // Update PDCP/SDAP config based on new QoS parameters
   drb_ctx.pdcp_cfg = set_rrc_pdcp_config(qos_flow.qos_flow_level_qos_params.qos_desc.get_5qi(), cfg);
   drb_ctx.sdap_cfg = set_rrc_sdap_config(drb_ctx);
   drb_ctx.rlc_mod  = (drb_ctx.pdcp_cfg.rlc_mode == pdcp_rlc_mode::am) ? rlc_mode::am : rlc_mode::um_bidir;
@@ -488,3 +492,4 @@ unsigned srsran::srs_cu_cp::get_dirty_drb_index(drb_id_t drb_id)
   srsran_assert(index < MAX_NOF_DRBS, "Invalid DRB ID when checking for DRB dirtyness");
   return index;
 }
+

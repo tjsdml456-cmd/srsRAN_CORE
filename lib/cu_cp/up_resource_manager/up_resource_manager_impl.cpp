@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2025 Software Radio Systems Limited
+ * Copyright 2021-2026 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -87,9 +87,44 @@ static void apply_update_for_new_drbs(up_pdu_session_context&                   
   }
 }
 
+static void apply_update_for_modified_drbs(up_pdu_session_context&                   pdu_session_context,
+                                            up_context&                               context,
+                                            const std::map<drb_id_t, up_drb_context>& drb_to_modify)
+{
+  for (const auto& drb : drb_to_modify) {
+    // Check if DRB exists
+    if (pdu_session_context.drbs.find(drb.first) == pdu_session_context.drbs.end()) {
+      // DRB doesn't exist - this shouldn't happen for modify, but handle gracefully
+      continue;
+    }
+
+    // Update existing DRB with new QoS information
+    auto& existing_drb = pdu_session_context.drbs.at(drb.first);
+    
+    // Update QoS parameters
+    existing_drb.qos_params = drb.second.qos_params;
+    
+    // Update QoS flows
+    for (const auto& flow : drb.second.qos_flows) {
+      // Update or add QoS flow
+      existing_drb.qos_flows[flow.first] = flow.second;
+      // Update QoS flow map
+      context.qos_flow_map[flow.first] = drb.first;
+    }
+    
+    // Update other DRB parameters if needed
+    existing_drb.pdcp_cfg = drb.second.pdcp_cfg;
+    existing_drb.sdap_cfg = drb.second.sdap_cfg;
+    existing_drb.rlc_mod  = drb.second.rlc_mod;
+    
+    // Mark DRB Id as dirty, until keys are refreshed.
+    context.drb_dirty[get_dirty_drb_index(drb.first)] = true;
+  }
+}
+
 static void apply_update_for_removed_drbs(up_pdu_session_context&      pdu_session_context,
-                                          up_context&                  context,
-                                          const std::vector<drb_id_t>& drb_to_remove)
+                                         up_context&                  context,
+                                         const std::vector<drb_id_t>& drb_to_remove)
 {
   // Remove DRB and all mapped flows.
   for (const auto& drb_id : drb_to_remove) {
@@ -122,6 +157,9 @@ bool up_resource_manager::apply_config_update(const up_config_update_result& res
     srsran_assert(
         context.pdu_sessions.find(mod_session.id) != context.pdu_sessions.end(), "{} not allocated", mod_session.id);
     auto& session_context = context.pdu_sessions.at(mod_session.id);
+
+    // Modify existing DRBs (update QoS information).
+    apply_update_for_modified_drbs(session_context, context, mod_session.drb_to_modify);
 
     // Add new DRBs.
     apply_update_for_new_drbs(session_context, context, mod_session.drb_to_add);
@@ -255,3 +293,4 @@ void up_resource_manager::set_up_context(const up_context& ctx)
 {
   context = ctx;
 }
+
