@@ -1,4 +1,4 @@
-# Dynamic 5QI and GBR Modification 기능 구현 가이드
+# Open5GS–srsRAN 동적 5QI/GBR QoS 연동 구현
 
 ## 개요
 
