@@ -183,35 +183,23 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
 
       slot_point hol_toa = u.dl_hol_toa(lc->lcid);
       if (hol_toa.valid() and slot_tx >= hol_toa) {
-        const unsigned hol_delay_ms = (slot_tx - hol_toa) / slot_tx.nof_slots_per_subframe();
-        const unsigned pdb          = lc->qos->qos.packet_delay_budget_ms;
-        double delay_contrib = hol_delay_ms / static_cast<double>(pdb);
+        const unsigned diff_slots       = slot_tx - hol_toa;
+        const double   slot_duration_ms = 1.0 / slot_tx.nof_slots_per_subframe();
+        const double   hol_delay_ms     = static_cast<double>(diff_slots) * slot_duration_ms;
+        const unsigned pdb              = lc->qos->qos.packet_delay_budget_ms;
+        double         delay_contrib    = hol_delay_ms / static_cast<double>(pdb);
         delay_weight += delay_contrib;
-        
-        // Log delay_weight calculation details (periodically)
-        static unsigned delay_log_counter = 0;
-        if ((delay_log_counter++ % 100) == 0) {
-          logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa={} slot_tx={} hol_delay_ms={} PDB={}ms delay_contrib={:.3f} delay_weight={:.3f}",
-                      u.ue_index(),
-                      fmt::underlying(lc->lcid),
-                      hol_toa.to_uint(),
-                      slot_tx.to_uint(),
-                      hol_delay_ms,
-                      pdb,
-                      delay_contrib,
-                      delay_weight);
-        }
-      } else {
-        // Log when hol_toa is invalid or condition not met (periodically)
-        static unsigned hol_toa_log_counter = 0;
-        if ((hol_toa_log_counter++ % 100) == 0) {
-          logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa_valid={} hol_toa={} slot_tx={} (condition not met, delay_weight not updated)",
-                      u.ue_index(),
-                      fmt::underlying(lc->lcid),
-                      hol_toa.valid(),
-                      hol_toa.valid() ? hol_toa.to_uint() : 0,
-                      slot_tx.to_uint());
-        }
+
+        // throttle 없이, 조건 만족할 때마다 전부 찍기 (ms 단위)
+        logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa={} slot_tx={} hol_delay_ms={:.3f} PDB={}ms delay_contrib={:.3f} delay_weight={:.3f}",
+                    u.ue_index(),
+                    fmt::underlying(lc->lcid),
+                    hol_toa.to_uint(),
+                    slot_tx.to_uint(),
+                    hol_delay_ms,
+                    pdb,
+                    delay_contrib,
+                    delay_weight);
       }
 
       if (not lc->qos->gbr_qos_info.has_value()) {
@@ -507,4 +495,5 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
+
 
