@@ -220,7 +220,11 @@ void ue_configuration_procedure::update_ue_context()
       }
       ue->bearers.add_drb(std::move(drb));
     } else {
-      // TODO: Support existing DRB entity modifications.
+      // Existing DRB modified (e.g. QoS/5QI change). Reset so next packet is logged as "first after change".
+      du_ue_drb& drb = *drb_it->second;
+      if (drb.drb_f1u != nullptr) {
+        drb.drb_f1u->reset_first_packet_logged_after_qos_change();
+      }
     }
   }
 }
@@ -498,3 +502,4 @@ void ue_configuration_procedure::handle_rrc_reconfiguration_complete_ind()
                    fmt::underlying(ue->ue_index));
   }
 }
+

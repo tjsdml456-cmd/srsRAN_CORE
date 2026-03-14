@@ -40,6 +40,9 @@ public:
   virtual f1u_tx_sdu_handler&      get_tx_sdu_handler()      = 0;
 
   virtual void stop() = 0;
+
+  /// Call when QoS (e.g. 5QI) was modified for this bearer so the next packet is logged as "first after change".
+  virtual void reset_first_packet_logged_after_qos_change() = 0;
 };
 
 /// This class represents the interface through which a F1-U bearer disconnects from its gateway upon removal
@@ -53,3 +56,4 @@ public:
 
 } // namespace srs_du
 } // namespace srsran
+

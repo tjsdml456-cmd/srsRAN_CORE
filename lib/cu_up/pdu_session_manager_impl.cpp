@@ -421,6 +421,9 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
 
   auto& pdu_session = pdu_sessions.at(session.pdu_session_id);
 
+  // Reset GTP-U "first packet after QoS change" log so the next DL packet from NG-U is logged again.
+  pdu_session->gtpu->reset_first_packet_logged_after_qos_change();
+
   // > DRB To Setup List
   for (const auto& drb_to_setup : session.drb_to_setup_list_ng_ran) {
     drb_setup_result drb_result = handle_drb_to_setup_item(*pdu_session, drb_to_setup);
@@ -819,3 +822,4 @@ pdu_session_state_t pdu_session_manager_impl::get_pdu_session_state()
   }
   return st;
 }
+

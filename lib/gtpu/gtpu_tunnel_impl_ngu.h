@@ -54,6 +54,7 @@ public:
   }
   gtpu_tunnel_common_rx_upper_layer_interface* get_rx_upper_layer_interface() final { return rx.get(); }
   gtpu_tunnel_ngu_tx_lower_layer_interface*    get_tx_lower_layer_interface() final { return tx.get(); }
+  void reset_first_packet_logged_after_qos_change() final { rx->reset_first_packet_logged_after_qos_change(); }
 
 private:
   srslog::basic_logger& logger;
@@ -62,3 +63,4 @@ private:
   std::unique_ptr<gtpu_tunnel_ngu_tx_impl> tx = {};
 };
 } // namespace srsran
+

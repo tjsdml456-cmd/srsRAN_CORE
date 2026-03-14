@@ -71,6 +71,7 @@ public:
   void handle_sdu(byte_buffer_chain sdu) override {}
   void flush_ul_buffer() override {}
   void stop() override {}
+  void reset_first_packet_logged_after_qos_change() override {}
 };
 
 class null_sink_rlc_bearer : public rlc_tx_upper_layer_data_interface, public rlc_rx_lower_layer_interface
@@ -126,3 +127,4 @@ void mac_sdu_rx_adapter::disconnect()
 {
   connect(null_rlc_bearer);
 }
+

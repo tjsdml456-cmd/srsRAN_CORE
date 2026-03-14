@@ -29,6 +29,7 @@
 #include "srsran/ran/cu_types.h"
 #include "srsran/support/sdu_window.h"
 #include "srsran/support/timers.h"
+#include <array>
 
 namespace srsran {
 
@@ -84,6 +85,9 @@ public:
       stopped = true;
     }
   }
+
+  /// Call when QoS was modified for this session so the next packet per QFI is logged again.
+  void reset_first_packet_logged_after_qos_change() { first_packet_after_qos_change_logged_qfi.fill(false); }
 
   /*
    * Testing Helpers
@@ -231,6 +235,15 @@ protected:
 
   void deliver_sdu(gtpu_rx_sdu_info& sdu_info)
   {
+    /* First packet with this QFI after last QoS change (DL from core) */
+    const unsigned qfi_val = static_cast<unsigned>(sdu_info.qos_flow_id);
+    if (qfi_val < first_packet_after_qos_change_logged_qfi.size() &&
+        not first_packet_after_qos_change_logged_qfi[qfi_val]) {
+      logger.log_info(
+          "[QoS-MODIFY] [FIRST-PACKET-DL] First packet with QFI={} after QoS change (CU-UP, from core NG-U)",
+          sdu_info.qos_flow_id);
+      first_packet_after_qos_change_logged_qfi[qfi_val] = true;
+    }
     logger.log_info(sdu_info.sdu.begin(),
                     sdu_info.sdu.end(),
                     "RX SDU. sdu_len={} qos_flow={} sn={}",
@@ -292,6 +305,9 @@ private:
   psup_packing                             psup_packer;
   gtpu_tunnel_ngu_rx_lower_layer_notifier& lower_dn;
   bool                                     stopped = false;
+
+  static constexpr unsigned max_qfi = 64;
+  std::array<bool, max_qfi> first_packet_after_qos_change_logged_qfi = {};
 
   /// Rx config
   gtpu_tunnel_ngu_config::gtpu_tunnel_ngu_rx_config config;
@@ -371,3 +387,4 @@ struct formatter<srsran::gtpu_rx_state> {
 };
 
 } // namespace fmt
+

@@ -66,9 +66,14 @@ public:
 
   void stop() override;
 
+  void reset_first_packet_logged_after_qos_change() override;
+
 private:
   f1u_bearer_logger logger;
   bool              stopped = false;
+
+  /// First packet after QoS change (reset when QoS modified so next packet is logged)
+  bool first_packet_after_qos_change_logged = false;
 
   /// Config storage
   const f1u_config              cfg;
@@ -160,3 +165,4 @@ private:
 
 } // namespace srs_du
 } // namespace srsran
+
