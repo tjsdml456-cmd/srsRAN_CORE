@@ -610,10 +610,45 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
       pdu_session->gtpu->arm_first_packet_log_after_remap(req_qos_flow.qos_flow_id);
     }
 
-    // Apply QoS flows
-    for (auto& qos_flow_info : drb_to_mod.flow_map_info) {
-      // TODO
-      logger.log_warning("Unsupported modification of QoS flow for {}", qos_flow_info.qos_flow_id);
+    // Apply QoS flow updates coming from control-plane (QFI->5QI remap).
+    for (const auto& qos_flow_info : drb_to_mod.flow_map_info) {
+      const qos_flow_id_t qfi      = qos_flow_info.qos_flow_id;
+      const five_qi_t     req_5qi  = qos_flow_info.qos_flow_level_qos_params.qos_desc.get_5qi();
+      const bool          is_dyn_5qi = qos_flow_info.qos_flow_level_qos_params.qos_desc.is_dyn_5qi();
+
+      if (is_dyn_5qi) {
+        logger.log_warning("[QoS-MODIFY] Dynamic 5QI is not supported for qfi={} (drb_id={})", qfi, drb_to_mod.drb_id);
+        continue;
+      }
+      if (req_5qi == five_qi_t::invalid) {
+        logger.log_warning("[QoS-MODIFY] Invalid 5QI in modify request for qfi={} (drb_id={})", qfi, drb_to_mod.drb_id);
+        continue;
+      }
+      if (qos_cfg.find(req_5qi) == qos_cfg.end()) {
+        logger.log_warning("[QoS-MODIFY] Requested 5QI={} for qfi={} is not present in CU-UP QoS config",
+                           req_5qi,
+                           qfi);
+      }
+
+      auto flow_it = drb->qos_flows.find(qfi);
+      if (flow_it == drb->qos_flows.end()) {
+        drb->qos_flows[qfi] = std::make_unique<qos_flow_context>(qos_flow_info);
+        logger.log_info("[QoS-MODIFY] Added new flow mapping in DRB context. psi={} drb_id={} qfi={} five_qi={}",
+                        session.pdu_session_id,
+                        drb_to_mod.drb_id,
+                        qfi,
+                        req_5qi);
+        continue;
+      }
+
+      five_qi_t old_5qi    = flow_it->second->five_qi;
+      flow_it->second->five_qi = req_5qi;
+      logger.log_info("[QoS-MODIFY] Updated flow mapping in DRB context. psi={} drb_id={} qfi={} five_qi={}->{}",
+                      session.pdu_session_id,
+                      drb_to_mod.drb_id,
+                      qfi,
+                      old_5qi,
+                      req_5qi);
     }
 
     // Add result
@@ -855,4 +890,5 @@ pdu_session_state_t pdu_session_manager_impl::get_pdu_session_state()
   }
   return st;
 }
+
 
