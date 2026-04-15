@@ -29,6 +29,7 @@
 #include "srsran/gtpu/gtpu_tunnel_ngu_tx.h"
 #include "srsran/support/bit_encoding.h"
 #include <arpa/inet.h>
+#include <array>
 #include <netinet/in.h>
 
 namespace srsran {
@@ -48,6 +49,16 @@ public:
   }
 
   void stop() { stopped = true; }
+
+  /// Call when QoS was modified for this session so the next UL packet per QFI is logged again.
+  void reset_first_packet_logged_after_qos_change() { first_packet_after_qos_change_logged_qfi.fill(false); }
+  void arm_first_packet_log_after_remap(qos_flow_id_t qfi)
+  {
+    const unsigned qfi_val = qos_flow_id_to_uint(qfi);
+    if (qfi_val < remap_done_first_packet_arm_qfi.size()) {
+      remap_done_first_packet_arm_qfi[qfi_val] = true;
+    }
+  }
 
   /*
    * SDU/PDU handlers
@@ -94,13 +105,35 @@ public:
       logger.log_error("Dropped SDU, error writing GTP-U header. teid={}", hdr.teid);
       return;
     }
+
+    /* First packet with this QFI after remap was completed (UL towards core NG-U) */
+    const unsigned qfi_val = qos_flow_id_to_uint(qfi);
+    if (qfi_val < remap_done_first_packet_arm_qfi.size() and remap_done_first_packet_arm_qfi[qfi_val]) {
+      logger.log_info("[QoS-MODIFY] [FIRST-PACKET-UL-AFTER-REMAP] First packet with QFI={} after DRB remap done",
+                      qfi_val);
+      remap_done_first_packet_arm_qfi[qfi_val] = false;
+    }
+    if (qfi_val < first_packet_after_qos_change_logged_qfi.size() and
+        not first_packet_after_qos_change_logged_qfi[qfi_val]) {
+      logger.log_info(
+          "[QoS-MODIFY] [FIRST-PACKET-UL] First packet with QFI={} after QoS change (CU-UP, to core NG-U)",
+          qfi_val);
+      first_packet_after_qos_change_logged_qfi[qfi_val] = true;
+    }
+
     logger.log_info(buf.begin(), buf.end(), "TX PDU. pdu_len={} teid={} qfi={}", buf.length(), hdr.teid, qfi);
     send_pdu(std::move(buf), peer_sockaddr);
   }
 
 private:
+  static constexpr unsigned max_qfi = 64;
+
   const gtpu_tunnel_ngu_config::gtpu_tunnel_ngu_tx_config cfg;
   sockaddr_storage                                        peer_sockaddr = {};
   bool                                                    stopped       = false;
+
+  std::array<bool, max_qfi> first_packet_after_qos_change_logged_qfi = {};
+  std::array<bool, max_qfi> remap_done_first_packet_arm_qfi          = {};
 };
 } // namespace srsran
+

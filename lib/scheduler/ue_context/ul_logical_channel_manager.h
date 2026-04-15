@@ -143,6 +143,9 @@ public:
   /// This event will be used to update estimated bit rates.
   void handle_ul_grant(unsigned grant_size);
 
+  /// \brief Consume a one-shot "first UL grant after QoS change" flag for the given LCG.
+  bool consume_first_ul_grant_after_qos_change(lcg_id_t lcg_id);
+
 private:
   struct channel_group_context : public intrusive_double_linked_list_element<> {
     bool active = false;
@@ -156,6 +159,9 @@ private:
     unsigned sched_bytes_accum = 0;
     /// Slice associated with this channel.
     std::optional<ran_slice_id_t> slice_id;
+
+    /// Whether the next UL grant for this LCG should be logged as the first one after a QoS update.
+    bool first_ul_grant_after_qos_change_pending = false;
   };
 
   /// \brief Adds an estimate of the upper layer required header bytes.
@@ -188,3 +194,4 @@ private:
 };
 
 } // namespace srsran
+

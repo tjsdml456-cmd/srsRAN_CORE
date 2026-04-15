@@ -88,6 +88,13 @@ public:
 
   /// Call when QoS was modified for this session so the next packet per QFI is logged again.
   void reset_first_packet_logged_after_qos_change() { first_packet_after_qos_change_logged_qfi.fill(false); }
+  void arm_first_packet_log_after_remap(qos_flow_id_t qfi)
+  {
+    const unsigned qfi_val = static_cast<unsigned>(qfi);
+    if (qfi_val < remap_done_first_packet_arm_qfi.size()) {
+      remap_done_first_packet_arm_qfi[qfi_val] = true;
+    }
+  }
 
   /*
    * Testing Helpers
@@ -235,13 +242,15 @@ protected:
 
   void deliver_sdu(gtpu_rx_sdu_info& sdu_info)
   {
-    /* First packet with this QFI after last QoS change (DL from core) */
+    /* First packet with this QFI after remap was completed (DL from core) */
     const unsigned qfi_val = static_cast<unsigned>(sdu_info.qos_flow_id);
-    if (qfi_val < first_packet_after_qos_change_logged_qfi.size() &&
+    if (qfi_val < remap_done_first_packet_arm_qfi.size() && remap_done_first_packet_arm_qfi[qfi_val]) {
+      logger.log_info("[QoS-MODIFY] [FIRST-PACKET-DL-AFTER-REMAP] First packet with QFI={} after DRB remap done",
+                      qfi_val);
+      remap_done_first_packet_arm_qfi[qfi_val] = false;
+    }
+    if (qfi_val < first_packet_after_qos_change_logged_qfi.size() and
         not first_packet_after_qos_change_logged_qfi[qfi_val]) {
-      logger.log_info(
-          "[QoS-MODIFY] [FIRST-PACKET-DL] First packet with QFI={} after QoS change (CU-UP, from core NG-U)",
-          sdu_info.qos_flow_id);
       first_packet_after_qos_change_logged_qfi[qfi_val] = true;
     }
     logger.log_info(sdu_info.sdu.begin(),
@@ -308,6 +317,7 @@ private:
 
   static constexpr unsigned max_qfi = 64;
   std::array<bool, max_qfi> first_packet_after_qos_change_logged_qfi = {};
+  std::array<bool, max_qfi> remap_done_first_packet_arm_qfi          = {};
 
   /// Rx config
   gtpu_tunnel_ngu_config::gtpu_tunnel_ngu_rx_config config;

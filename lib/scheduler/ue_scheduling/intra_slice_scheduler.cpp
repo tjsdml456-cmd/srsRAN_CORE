@@ -23,7 +23,9 @@
 #include "intra_slice_scheduler.h"
 #include "../logging/scheduler_metrics_handler.h"
 #include "srsran/ran/pdcch/search_space.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/support/math/mod_math_utils.h"
+#include <chrono>
 
 using namespace srsran;
 
@@ -285,6 +287,25 @@ static std::pair<unsigned, unsigned> get_max_grants_and_rb_grant_size(span<const
 
   static constexpr unsigned MIN_RB_PER_GRANT = 4;
   return std::make_pair(max_nof_rbs, std::max(max_nof_rbs / ues_to_alloc, MIN_RB_PER_GRANT));
+}
+
+static std::optional<five_qi_t> reverse_map_fiveqi_from_standardized_qos(const standardized_qos_characteristics& qos)
+{
+  // Reverse-map by searching only the 5QIs explicitly present in the standardized table implementation.
+  static constexpr five_qi_t five_qi_candidates[] = {
+      uint_to_five_qi(1),  uint_to_five_qi(2),  uint_to_five_qi(3),  uint_to_five_qi(4),  //
+      uint_to_five_qi(5),  uint_to_five_qi(6),  uint_to_five_qi(7),  uint_to_five_qi(8),  //
+      uint_to_five_qi(9),  uint_to_five_qi(65), uint_to_five_qi(66), uint_to_five_qi(67), //
+      uint_to_five_qi(69), uint_to_five_qi(70), uint_to_five_qi(79), uint_to_five_qi(80), //
+      uint_to_five_qi(82), uint_to_five_qi(83), uint_to_five_qi(84), uint_to_five_qi(85)};
+
+  for (five_qi_t candidate : five_qi_candidates) {
+    const auto* mapped = get_5qi_to_qos_characteristics_mapping(candidate);
+    if (mapped != nullptr && *mapped == qos) {
+      return candidate;
+    }
+  }
+  return std::nullopt;
 }
 
 unsigned intra_slice_scheduler::schedule_dl_retx_candidates(dl_ran_slice_candidate& slice,
@@ -672,6 +693,75 @@ unsigned intra_slice_scheduler::schedule_ul_newtx_candidates(ul_ran_slice_candid
 
   // Update policy with allocation results.
   const auto& puschs = cell_alloc[pusch_slot].result.ul.puschs;
+
+  // Log UL grant decision time (for UL delay correlation) and UE 5QI at grant time.
+  {
+    const auto t_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                          std::chrono::steady_clock::now().time_since_epoch())
+                          .count();
+    const auto new_grants = span<const ul_sched_info>(puschs.end() - alloc_count, puschs.end());
+    for (const ul_sched_info& grant : new_grants) {
+      const int prb_start = grant.pusch_cfg.rbs.is_type1() ? static_cast<int>(grant.pusch_cfg.rbs.type1().start()) : -1;
+      const int prb_stop  = grant.pusch_cfg.rbs.is_type1() ? static_cast<int>(grant.pusch_cfg.rbs.type1().stop()) : -1;
+      const int nof_prb   = grant.pusch_cfg.rbs.is_type1() ? static_cast<int>(grant.pusch_cfg.rbs.type1().length()) : -1;
+
+      const slice_ue&         ue_in_slice = slice.get_slice_ues()[grant.context.ue_index];
+      const auto              lc_chs       = ue_in_slice.logical_channels();
+      lcg_id_t                 best_lcg_id  = lcg_id_t::LCG_ID_INVALID;
+      lcid_t                    best_lcid     = lcid_t::INVALID_LCID;
+      unsigned           best_lcg_bytes = 0;
+      std::optional<five_qi_t> best_fiveqi_opt;
+
+      if (lc_chs.has_value()) {
+        for (const auto& lc_cfg_ptr : *lc_chs) {
+          const auto& lc_cfg = lc_cfg_ptr.value();
+          if (not lc_cfg.qos.has_value()) {
+            continue;
+          }
+
+          // Choose the UL LCG that has the largest pending bytes (within this slice/UE).
+          const lcg_id_t lcg_id = lc_cfg.lc_group;
+          const unsigned pending_bytes = ue_in_slice.pending_ul_unacked_bytes(lcg_id);
+          if (pending_bytes <= best_lcg_bytes) {
+            continue;
+          }
+
+          best_lcg_bytes = pending_bytes;
+          best_lcg_id    = lcg_id;
+          best_lcid       = lc_cfg.lcid;
+          best_fiveqi_opt = reverse_map_fiveqi_from_standardized_qos(lc_cfg.qos->qos);
+        }
+      }
+
+      const int fiveqi_val = best_fiveqi_opt.has_value() ? static_cast<int>(best_fiveqi_opt.value()) : -1;
+
+      const bool first_grant_after_qos_change =
+          const_cast<slice_ue&>(ue_in_slice).consume_first_ul_grant_after_qos_change(best_lcg_id);
+      if (first_grant_after_qos_change) {
+        logger.info("[QoS-MODIFY] [FIRST-GRANT-UL] t_us={} slot_tx={} pusch_slot={} ue={} rnti={} 5qi={} lcg={} lcid={} pending_lcg_bytes={} "
+                    "tb_size={} rbs={} prb=[{},{}] nof_prb={} sym=[{},{}] mcs={} k2={} nof_retxs={}",
+                    t_us,
+                    slice.get_slot_tx(),
+                    pusch_slot,
+                    fmt::underlying(grant.context.ue_index),
+                    grant.pusch_cfg.rnti,
+                    fiveqi_val,
+                    static_cast<unsigned>(best_lcg_id),
+                    static_cast<unsigned>(best_lcid),
+                    best_lcg_bytes,
+                    grant.pusch_cfg.tb_size_bytes,
+                    grant.pusch_cfg.rbs,
+                    prb_start,
+                    prb_stop,
+                    nof_prb,
+                    grant.pusch_cfg.symbols.start(),
+                    grant.pusch_cfg.symbols.stop(),
+                    grant.pusch_cfg.mcs_index,
+                    grant.context.k2,
+                    grant.context.nof_retxs);
+      }
+    }
+  }
   ul_policy.save_ul_newtx_grants(span<const ul_sched_info>(puschs.end() - alloc_count, puschs.end()));
 
   return alloc_count;
@@ -896,3 +986,4 @@ void intra_slice_scheduler::update_used_ul_vrbs(const ul_ran_slice_candidate& sl
                      .ul_res_grid.used_prbs(init_ul_bwp.generic_params.scs, ul_crb_lims, symbols_to_check)
                      .convert_to<vrb_bitmap>();
 }
+

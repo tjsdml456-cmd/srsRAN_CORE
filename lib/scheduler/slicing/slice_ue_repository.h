@@ -94,6 +94,9 @@ public:
   /// Get QoS information of DRBs configured for the UE.
   logical_channel_config_list_ptr logical_channels() const { return u.ue_cfg_dedicated()->logical_channels(); }
 
+  /// \brief Consume a one-shot "QoS update -> first UL grant" flag for the given LCG.
+  bool consume_first_ul_grant_after_qos_change(lcg_id_t lcg_id) { return u.ul_logical_channels().consume_first_ul_grant_after_qos_change(lcg_id); }
+
   /// Average DL bit rate, in bps, for a given UE logical channel.
   double dl_avg_bit_rate(lcid_t lcid) const
   {
@@ -169,3 +172,4 @@ private:
 };
 
 } // namespace srsran
+

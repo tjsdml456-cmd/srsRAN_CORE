@@ -240,17 +240,14 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
   gbr_weight   = policy_params.gbr_enabled and gbr_weight != 0 ? gbr_weight : 1.0;
   delay_weight = policy_params.pdb_enabled and delay_weight != 0 ? delay_weight : 1.0;
   
-  // Log delay_weight final value and reason (periodically)
-  static unsigned delay_final_log_counter = 0;
-  if ((delay_final_log_counter++ % 100) == 0) {
-    logger.info("[DELAY-WEIGHT-FINAL] UE{} delay_weight_before={:.3f} pdb_enabled={} delay_weight_after={:.3f} (reason: {})",
-                u.ue_index(),
-                delay_weight_before,
-                policy_params.pdb_enabled,
-                delay_weight,
-                (policy_params.pdb_enabled and delay_weight_before != 0) ? "calculated" : 
-                (not policy_params.pdb_enabled) ? "pdb_disabled" : "delay_weight_was_zero");
-  }
+  // Log delay_weight final value and reason.
+  logger.info("[DELAY-WEIGHT-FINAL] UE{} delay_weight_before={:.3f} pdb_enabled={} delay_weight_after={:.3f} (reason: {})",
+              u.ue_index(),
+              delay_weight_before,
+              policy_params.pdb_enabled,
+              delay_weight,
+              (policy_params.pdb_enabled and delay_weight_before != 0) ? "calculated" :
+              (not policy_params.pdb_enabled) ? "pdb_disabled" : "delay_weight_was_zero");
 
   double pf_weight = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
   // If priority is disabled, set the priority weight of all UEs to 1.0.
@@ -258,17 +255,14 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
 
-  // Log DL Priority calc (periodically)
-  static unsigned dl_prio_log_counter = 0;
-  if ((dl_prio_log_counter++ % 100) == 0) {
-    logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
-                u.ue_index(),
-                min_combined_prio,
-                prio_weight,
-                pf_weight,
-                gbr_weight,
-                delay_weight);
-  }
+  // Log DL priority calculation every evaluation.
+  logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
+              u.ue_index(),
+              min_combined_prio,
+              prio_weight,
+              pf_weight,
+              gbr_weight,
+              delay_weight);
 
   // The return is a combination of ARP and QoS priorities, GBR and PF weight functions.
   return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, delay_weight, policy_params);

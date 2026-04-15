@@ -331,6 +331,9 @@ void srsran::srs_cu_cp::fill_drb_to_modify_list(
     e1ap_drb_to_modify_item.sdap_cfg = drb_to_modify.second.sdap_cfg;
     e1ap_drb_to_modify_item.pdcp_cfg.emplace();
     fill_e1ap_drb_pdcp_config(e1ap_drb_to_modify_item.pdcp_cfg.value(), drb_to_modify.second.pdcp_cfg);
+    logger.info("[QoS-MODIFY] [CP-5QI] Building DRB modify item. drb_id={} qos_flow_count={}",
+                drb_to_modify.first,
+                drb_to_modify.second.qos_flows.size());
 
     // Only iterate over the QoS flows mapped to this particular DRB.
     for (const auto& flow : drb_to_modify.second.qos_flows) {
@@ -340,7 +343,14 @@ void srsran::srs_cu_cp::fill_drb_to_modify_list(
       e1ap_qos_flow_qos_param_item e1ap_qos_item;
       fill_e1ap_qos_flow_param_item(e1ap_qos_item, logger, qos_flow_params);
       e1ap_drb_to_modify_item.flow_map_info.emplace(e1ap_qos_item.qos_flow_id, e1ap_qos_item);
+      logger.info("[QoS-MODIFY] [CP-5QI] Add modify flow_map_info. drb_id={} qfi={} five_qi={}",
+                  drb_to_modify.first,
+                  e1ap_qos_item.qos_flow_id,
+                  e1ap_qos_item.qos_flow_level_qos_params.qos_desc.get_5qi());
     }
+    logger.info("[QoS-MODIFY] [CP-5QI] Built DRB modify item complete. drb_id={} flow_map_info_count={}",
+                drb_to_modify.first,
+                e1ap_drb_to_modify_item.flow_map_info.size());
 
     e1ap_drb_to_modify_list.emplace(e1ap_drb_to_modify_item.drb_id, e1ap_drb_to_modify_item);
   }
@@ -440,4 +450,5 @@ bool srsran::srs_cu_cp::update_setup_list_with_ue_ctxt_setup_response(
 
   return true;
 }
+
 

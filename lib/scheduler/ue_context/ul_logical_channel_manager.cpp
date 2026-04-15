@@ -98,6 +98,31 @@ void ul_logical_channel_manager::configure(logical_channel_config_list_ptr lc_ch
     // No-op.
     return;
   }
+
+  // Detect QoS changes for logical channels and arm a one-shot flag for the corresponding LCG.
+  //
+  // This enables correlating "QoS modification" with the very first UL grant that uses the updated QoS.
+  const logical_channel_config_list_ptr old_lc_channels_configs = lc_channels_configs;
+  if (old_lc_channels_configs.has_value() and old_lc_channels_configs->size() > 0 and
+      lc_channel_configs_.has_value() and lc_channel_configs_->size() > 0) {
+    for (logical_channel_config_ptr new_lc : *lc_channel_configs_) {
+      const lcid_t lcid = new_lc->lcid;
+      const lcg_id_t lcg_id = new_lc->lc_group;
+
+      bool qos_changed = false;
+      if (not old_lc_channels_configs->contains(lcid)) {
+        qos_changed = true;
+      } else {
+        const logical_channel_config_ptr old_lc = (*old_lc_channels_configs)[lcid];
+        qos_changed                               = not(old_lc->qos == new_lc->qos);
+      }
+
+      if (qos_changed) {
+        groups[lcg_id].first_ul_grant_after_qos_change_pending = true;
+      }
+    }
+  }
+
   lc_channels_configs = lc_channel_configs_;
 
   for (unsigned i = 1; i != groups.size(); ++i) {
@@ -115,6 +140,7 @@ void ul_logical_channel_manager::configure(logical_channel_config_list_ptr lc_ch
   for (unsigned i = 0; i != groups.size(); ++i) {
     if (not groups[i].active and groups[i].slice_id.has_value() and has_slice(*groups[i].slice_id)) {
       reset_lcg_ran_slice(uint_to_lcg_id(i));
+      groups[i].first_ul_grant_after_qos_change_pending = false;
     }
   }
 }
@@ -167,3 +193,14 @@ void ul_logical_channel_manager::handle_ul_grant(unsigned grant_size)
     }
   }
 }
+
+bool ul_logical_channel_manager::consume_first_ul_grant_after_qos_change(lcg_id_t lcg_id)
+{
+  if (lcg_id >= groups.size()) {
+    return false;
+  }
+  const bool pending = groups[lcg_id].first_ul_grant_after_qos_change_pending;
+  groups[lcg_id].first_ul_grant_after_qos_change_pending = false;
+  return pending;
+}
+

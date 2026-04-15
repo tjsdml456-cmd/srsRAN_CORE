@@ -65,7 +65,6 @@ f1u_bearer_impl::f1u_bearer_impl(uint32_t                       ue_index,
 void f1u_bearer_impl::handle_sdu(byte_buffer_chain sdu)
 {
   if (not first_packet_after_qos_change_logged) {
-    logger.log_info("[QoS-MODIFY] [FIRST-PACKET-UL] First packet after QoS change (gNB DU, UL)");
     first_packet_after_qos_change_logged = true;
   }
   logger.log_debug("F1-U bearer received SDU with size={}", sdu.length());
@@ -120,7 +119,6 @@ void f1u_bearer_impl::reset_first_packet_logged_after_qos_change()
 void f1u_bearer_impl::handle_pdu_impl(nru_dl_message msg)
 {
   if (not first_packet_after_qos_change_logged) {
-    logger.log_info("[QoS-MODIFY] [FIRST-PACKET-DL] First packet after QoS change (gNB DU, DL)");
     first_packet_after_qos_change_logged = true;
   }
   logger.log_debug("F1-U bearer received PDU");

@@ -46,6 +46,9 @@ public:
 
   /// Call when QoS was modified for this session so the next DL packet per QFI is logged again.
   virtual void reset_first_packet_logged_after_qos_change() = 0;
+
+  /// Arm first-packet logging for a given QFI after DRB remap is completed.
+  virtual void arm_first_packet_log_after_remap(qos_flow_id_t qfi) = 0;
 };
 
 } // namespace srsran

@@ -420,6 +420,11 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
   }
 
   auto& pdu_session = pdu_sessions.at(session.pdu_session_id);
+  logger.log_info("[QoS-MODIFY] [CP-5QI] DRB modification received from control-plane. psi={} drb_setup_count={} drb_mod_count={} drb_rem_count={}",
+                  session.pdu_session_id,
+                  session.drb_to_setup_list_ng_ran.size(),
+                  session.drb_to_modify_list_ng_ran.size(),
+                  session.drb_to_rem_list_ng_ran.size());
 
   // Reset GTP-U "first packet after QoS change" log so the next DL packet from NG-U is logged again.
   pdu_session->gtpu->reset_first_packet_logged_after_qos_change();
@@ -452,6 +457,29 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
                   drb_iter->second->drb_id);
 
     std::unique_ptr<drb_context>& drb = drb_iter->second;
+    logger.log_info("[QoS-MODIFY] [CP-5QI] DRB modify detail. psi={} drb_id={} mapped_qfi_count={}",
+                    session.pdu_session_id,
+                    drb_to_mod.drb_id,
+                    drb->qos_flows.size());
+    logger.log_info("[QoS-MODIFY] [CP-5QI] DRB modify request detail. psi={} drb_id={} req_flow_count={}",
+                    session.pdu_session_id,
+                    drb_to_mod.drb_id,
+                    drb_to_mod.flow_map_info.size());
+    for (const auto& req_qos_flow : drb_to_mod.flow_map_info) {
+      logger.log_info("[QoS-MODIFY] [CP-5QI] Requested flow from control-plane. psi={} drb_id={} qfi={} five_qi={}",
+                      session.pdu_session_id,
+                      drb_to_mod.drb_id,
+                      req_qos_flow.qos_flow_id,
+                      req_qos_flow.qos_flow_level_qos_params.qos_desc.get_5qi());
+    }
+    for (const auto& [qfi, qos_flow_ctx] : drb->qos_flows) {
+      logger.log_info("[QoS-MODIFY] [CP-5QI] Current mapped flow. psi={} drb_id={} qfi={} five_qi={}",
+                      session.pdu_session_id,
+                      drb_to_mod.drb_id,
+                      qfi,
+                      qos_flow_ctx->five_qi);
+    }
+
     if (new_ul_tnl_info_required) {
       // Allocate new UL TEID for DRB
       expected<gtpu_teid_t> ret = f1u_teid_allocator.request_teid();
@@ -576,6 +604,11 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
     }
 
     logger.log_info("Modified {}. {} f1u_teid={}", drb_to_mod.drb_id, session.pdu_session_id, drb->f1u_ul_teid);
+
+    // Arm "first packet after remap done" logging for requested QFIs.
+    for (const auto& req_qos_flow : drb_to_mod.flow_map_info) {
+      pdu_session->gtpu->arm_first_packet_log_after_remap(req_qos_flow.qos_flow_id);
+    }
 
     // Apply QoS flows
     for (auto& qos_flow_info : drb_to_mod.flow_map_info) {

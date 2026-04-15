@@ -54,7 +54,16 @@ public:
   }
   gtpu_tunnel_common_rx_upper_layer_interface* get_rx_upper_layer_interface() final { return rx.get(); }
   gtpu_tunnel_ngu_tx_lower_layer_interface*    get_tx_lower_layer_interface() final { return tx.get(); }
-  void reset_first_packet_logged_after_qos_change() final { rx->reset_first_packet_logged_after_qos_change(); }
+  void reset_first_packet_logged_after_qos_change() final
+  {
+    rx->reset_first_packet_logged_after_qos_change();
+    tx->reset_first_packet_logged_after_qos_change();
+  }
+  void arm_first_packet_log_after_remap(qos_flow_id_t qfi) final
+  {
+    rx->arm_first_packet_log_after_remap(qfi);
+    tx->arm_first_packet_log_after_remap(qfi);
+  }
 
 private:
   srslog::basic_logger& logger;
