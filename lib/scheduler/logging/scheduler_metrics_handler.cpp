@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2021-2026 Software Radio Systems Limited
+ * Copyright 2021-2025 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -51,6 +51,9 @@ private:
 } // namespace
 
 static null_metrics_notifier null_notifier;
+// Force scheduler metric report period for throughput logs.
+// This controls the actual aggregation window (sum_*_tb_bytes and period_ms).
+static constexpr unsigned FORCED_METRIC_REPORT_PERIOD_MS = 10;
 
 cell_metrics_handler::cell_metrics_handler(
     const cell_configuration&                                                      cell_cfg_,
@@ -405,9 +408,11 @@ void cell_metrics_handler::report_metrics()
   auto next_report = notifier.get_builder();
 
   const std::chrono::milliseconds report_period{data.nof_slots / last_slot_tx.nof_slots_per_subframe()};
+  
   for (ue_metric_context& ue : ues) {
     // Compute statistics of the UE metrics and push the result to the report.
-    next_report->ue_metrics.push_back(ue.compute_report(report_period, nof_slots_per_sf));
+    scheduler_ue_metrics metrics = ue.compute_report(report_period, nof_slots_per_sf);
+    next_report->ue_metrics.push_back(metrics);
   }
   next_report->events.swap(pending_events);
 
@@ -597,7 +602,13 @@ void cell_metrics_handler::push_result(slot_point                sl_tx,
 
   handle_slot_result(sl_tx, slot_result, slot_decision_latency);
 
-  if (notifier.is_sched_report_required(sl_tx)) {
+  // Report every fixed 10ms window so throughput logs use true 10ms aggregation.
+  // nof_slots_per_sf = slots per 1ms (depends on SCS), so 10ms corresponds to:
+  // slots_per_forced_report = FORCED_METRIC_REPORT_PERIOD_MS * nof_slots_per_sf.
+  const unsigned slots_per_forced_report = FORCED_METRIC_REPORT_PERIOD_MS * nof_slots_per_sf;
+  const bool     forced_report_due       = slots_per_forced_report > 0 && data.nof_slots >= slots_per_forced_report;
+
+  if (forced_report_due || notifier.is_sched_report_required(sl_tx)) {
     // Prepare report and forward it to the notifier.
     report_metrics();
   }
@@ -631,37 +642,17 @@ cell_metrics_handler::ue_metric_context::compute_report(std::chrono::millisecond
   ret.tot_pusch_prbs_used = data.tot_ul_prbs_used;
   ret.dl_brate_kbps       = static_cast<double>(data.sum_dl_tb_bytes * 8U) / metric_report_period.count();
   ret.ul_brate_kbps       = static_cast<double>(data.sum_ul_tb_bytes * 8U) / metric_report_period.count();
+  
+  // Log detailed throughput calculation for debugging (every time for accurate throughput measurement)
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+  logger.info("UE{} Throughput calc: sum_dl_tb_bytes={}, period={}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), dl_nof_ok={}, ul_brate_kbps={:.2f} (={:.2f}Mbps), ul_nof_ok={}",
+              ue_index, data.sum_dl_tb_bytes, metric_report_period.count(), 
+              ret.dl_brate_kbps, ret.dl_brate_kbps / 1000.0, data.count_uci_harq_acks,
+              ret.ul_brate_kbps, ret.ul_brate_kbps / 1000.0, data.count_crc_acks); 
   ret.dl_nof_ok           = data.count_uci_harq_acks;
   ret.dl_nof_nok          = data.count_uci_harqs - data.count_uci_harq_acks;
   ret.ul_nof_ok           = data.count_crc_acks;
   ret.ul_nof_nok          = data.count_crc_pdus - data.count_crc_acks;
-  
-  // Log throughput calculation for Python script parsing
-  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
-  double       dl_brate_mbps = ret.dl_brate_kbps / 1000.0;
-  double       ul_brate_mbps = ret.ul_brate_kbps / 1000.0;
-  if (ret.ul_brate_kbps > 0) {
-    logger.info("UE{} Throughput calc: sum_dl_tb_bytes={}, period={}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), "
-                "dl_nof_ok={}, ul_brate_kbps={:.2f} (={:.2f}Mbps), ul_nof_ok={}",
-                ue_index,
-                data.sum_dl_tb_bytes,
-                metric_report_period.count(),
-                ret.dl_brate_kbps,
-                dl_brate_mbps,
-                ret.dl_nof_ok,
-                ret.ul_brate_kbps,
-                ul_brate_mbps,
-                ret.ul_nof_ok);
-  } else {
-    logger.info("UE{} Throughput calc: sum_dl_tb_bytes={}, period={}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), "
-                "dl_nof_ok={}",
-                ue_index,
-                data.sum_dl_tb_bytes,
-                metric_report_period.count(),
-                ret.dl_brate_kbps,
-                dl_brate_mbps,
-                ret.dl_nof_ok);
-  }
   ret.pusch_snr_db        = data.nof_pusch_snr_reports > 0 ? data.sum_pusch_snrs / data.nof_pusch_snr_reports : 0;
   ret.pusch_rsrp_db       = data.nof_pusch_rsrp_reports > 0 ? data.sum_pusch_rsrp / data.nof_pusch_rsrp_reports
                                                             : -std::numeric_limits<float>::infinity();
@@ -742,4 +733,3 @@ void scheduler_metrics_handler::rem_cell(du_cell_index_t cell_index)
 {
   cells.erase(cell_index);
 }
-
