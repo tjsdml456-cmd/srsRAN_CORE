@@ -121,6 +121,8 @@ class cell_metrics_handler final : public sched_metrics_ue_configurator
     std::optional<float>                   last_dl_olla;
     std::optional<float>                   last_ul_olla;
     non_persistent_data                    data;
+    uint64_t                               dl_tb_bytes_1ms_window = 0;
+    uint64_t                               ul_tb_bytes_1ms_window = 0;
 
     scheduler_ue_metrics compute_report(std::chrono::milliseconds metric_report_period, unsigned nof_slots_per_sf);
     void                 reset();
@@ -186,6 +188,9 @@ class cell_metrics_handler final : public sched_metrics_ue_configurator
 
   /// Metrics tracked that are reset on every report.
   non_persistent_data data;
+  unsigned            slots_since_last_1ms_tput_log = 0;
+  double              ms_since_last_1ms_tput_log    = 0.0;
+  double              throughput_log_elapsed_ms      = 0.0;
 
 public:
   /// \brief Creates a scheduler UE metrics handler for a given cell. In case the metrics_report_period is zero,
@@ -262,6 +267,7 @@ private:
   void handle_pucch_sinr(ue_metric_context& u, float sinr);
   void handle_csi_report(ue_metric_context& u, const csi_report_data& csi);
   void report_metrics();
+  void log_ue_throughput_1ms(double period_ms);
   void handle_slot_result(slot_point                sl_tx,
                           const sched_result&       slot_result,
                           std::chrono::microseconds slot_decision_latency);
@@ -286,3 +292,4 @@ private:
 };
 
 } // namespace srsran
+

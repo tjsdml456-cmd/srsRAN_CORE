@@ -491,12 +491,41 @@ pdu_session_manager_impl::modify_pdu_session(const e1ap_pdu_session_res_to_modif
       drb->f1u_ul_teid            = ret.value();
       logger.log_info("Replacing F1-U tunnel. old_ul_teid={} new_ul_teid={}", old_f1u_ul_teid, drb->f1u_ul_teid);
 
-      // TODO Right now, we get the 5QI for the first QoS flow.
-      five_qi_t five_qi = drb->qos_flows.begin()->second->five_qi;
+      // Prefer the 5QI coming in this modify request, so F1-U recreation uses the new QoS value.
+      // Fallback to existing DRB mapping only if the request does not contain a usable static 5QI.
+      five_qi_t five_qi = five_qi_t::invalid;
+      bool      five_qi_from_request = false;
+      for (const auto& req_qos_flow : drb_to_mod.flow_map_info) {
+        const auto& req_qos_desc = req_qos_flow.qos_flow_level_qos_params.qos_desc;
+        if (req_qos_desc.is_dyn_5qi()) {
+          continue;
+        }
+        five_qi = req_qos_desc.get_5qi();
+        if (five_qi == five_qi_t::invalid) {
+          continue;
+        }
+        five_qi_from_request = true;
+        break;
+      }
+      if (!five_qi_from_request && !drb->qos_flows.empty()) {
+        five_qi = drb->qos_flows.begin()->second->five_qi;
+      }
+      if (five_qi == five_qi_t::invalid) {
+        logger.log_warning("[QoS-MODIFY] Could not determine valid 5QI for F1-U tunnel recreation. psi={} drb_id={}",
+                           session.pdu_session_id,
+                           drb_to_mod.drb_id);
+        drb_result.cause = e1ap_cause_radio_network_t::not_supported_5qi_value;
+        continue;
+      }
       if (qos_cfg.find(five_qi) == qos_cfg.end()) {
         drb_result.cause = e1ap_cause_radio_network_t::not_supported_5qi_value;
         continue;
       }
+      logger.log_info("[QoS-MODIFY] F1-U recreation 5QI selection. psi={} drb_id={} selected_5qi={} source={}",
+                      session.pdu_session_id,
+                      drb_to_mod.drb_id,
+                      five_qi,
+                      five_qi_from_request ? "modify_request" : "existing_mapping");
       // create new F1-U and connect it. This will automatically disconnect the old F1-U.
       drb->f1u_gw_bearer = f1u_gw.create_cu_bearer(ue_index,
                                                    pdu_session->snssai,

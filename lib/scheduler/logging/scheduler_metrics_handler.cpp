@@ -51,9 +51,6 @@ private:
 } // namespace
 
 static null_metrics_notifier null_notifier;
-// Force scheduler metric report period for throughput logs.
-// This controls the actual aggregation window (sum_*_tb_bytes and period_ms).
-static constexpr unsigned FORCED_METRIC_REPORT_PERIOD_MS = 10;
 
 cell_metrics_handler::cell_metrics_handler(
     const cell_configuration&                                                      cell_cfg_,
@@ -181,6 +178,7 @@ void cell_metrics_handler::handle_crc_indication(slot_point                   sl
     }
     if (crc_pdu.tb_crc_success) {
       u.data.sum_ul_tb_bytes += tbs.value();
+      u.ul_tb_bytes_1ms_window += tbs.value();
     }
     if (crc_pdu.time_advance_offset.has_value()) {
       u.data.ta.update(crc_pdu.time_advance_offset.value().to_seconds());
@@ -249,7 +247,43 @@ void cell_metrics_handler::handle_dl_harq_ack(du_ue_index_t ue_index, bool ack, 
     ++u.data.count_uci_harqs;
     if (ack) {
       u.data.sum_dl_tb_bytes += tbs.value();
+      u.dl_tb_bytes_1ms_window += tbs.value();
     }
+  }
+}
+
+void cell_metrics_handler::log_ue_throughput_1ms(double period_ms)
+{
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+
+  if (period_ms <= 0.0) {
+    return;
+  }
+
+  for (ue_metric_context& ue : ues) {
+    const double dl_brate_kbps = static_cast<double>(ue.dl_tb_bytes_1ms_window * 8U) / period_ms;
+    const double ul_brate_kbps = static_cast<double>(ue.ul_tb_bytes_1ms_window * 8U) / period_ms;
+
+    logger.info(
+        "UE{} Throughput 1ms: sum_dl_tb_bytes={}, period={:.3f}ms, dl_brate_kbps={:.2f} (={:.2f}Mbps), "
+        "sum_ul_tb_bytes={}, ul_brate_kbps={:.2f} (={:.2f}Mbps)",
+        ue.ue_index,
+        ue.dl_tb_bytes_1ms_window,
+        period_ms,
+        dl_brate_kbps,
+        dl_brate_kbps / 1000.0,
+        ue.ul_tb_bytes_1ms_window,
+        ul_brate_kbps,
+        ul_brate_kbps / 1000.0);
+    logger.info("[UL-TPUT-1MS] UE{} sum_ul_tb_bytes={} period_ms={:.3f} ul_brate_kbps={:.2f} ul_brate_mbps={:.2f}",
+                ue.ue_index,
+                ue.ul_tb_bytes_1ms_window,
+                period_ms,
+                ul_brate_kbps,
+                ul_brate_kbps / 1000.0);
+
+    ue.dl_tb_bytes_1ms_window = 0;
+    ue.ul_tb_bytes_1ms_window = 0;
   }
 }
 
@@ -485,12 +519,25 @@ void cell_metrics_handler::handle_slot_result(slot_point                sl_tx,
                                               const sched_result&       slot_result,
                                               std::chrono::microseconds slot_decision_latency)
 {
+  unsigned slot_advance = 0;
   if (SRSRAN_UNLIKELY(not last_slot_tx.valid())) {
     data.nof_slots = 1;
+    slot_advance   = 1;
   } else {
-    data.nof_slots += sl_tx - last_slot_tx;
+    slot_advance = sl_tx - last_slot_tx;
+    data.nof_slots += slot_advance;
   }
   last_slot_tx = sl_tx;
+
+  slots_since_last_1ms_tput_log += slot_advance;
+  throughput_log_elapsed_ms += static_cast<double>(slot_advance) / static_cast<double>(nof_slots_per_sf);
+  ms_since_last_1ms_tput_log += static_cast<double>(slot_advance) / static_cast<double>(nof_slots_per_sf);
+  const double target_log_period_ms = throughput_log_elapsed_ms < 10000.0 ? 1000.0 : 1.0;
+  if (ms_since_last_1ms_tput_log >= target_log_period_ms) {
+    log_ue_throughput_1ms(ms_since_last_1ms_tput_log);
+    slots_since_last_1ms_tput_log = 0;
+    ms_since_last_1ms_tput_log = 0.0;
+  }
 
   data.nof_ue_pdsch_grants += slot_result.dl.ue_grants.size();
   for (const dl_msg_alloc& dl_grant : slot_result.dl.ue_grants) {
@@ -602,13 +649,7 @@ void cell_metrics_handler::push_result(slot_point                sl_tx,
 
   handle_slot_result(sl_tx, slot_result, slot_decision_latency);
 
-  // Report every fixed 10ms window so throughput logs use true 10ms aggregation.
-  // nof_slots_per_sf = slots per 1ms (depends on SCS), so 10ms corresponds to:
-  // slots_per_forced_report = FORCED_METRIC_REPORT_PERIOD_MS * nof_slots_per_sf.
-  const unsigned slots_per_forced_report = FORCED_METRIC_REPORT_PERIOD_MS * nof_slots_per_sf;
-  const bool     forced_report_due       = slots_per_forced_report > 0 && data.nof_slots >= slots_per_forced_report;
-
-  if (forced_report_due || notifier.is_sched_report_required(sl_tx)) {
+  if (notifier.is_sched_report_required(sl_tx)) {
     // Prepare report and forward it to the notifier.
     report_metrics();
   }
@@ -618,7 +659,10 @@ void cell_metrics_handler::handle_cell_deactivation()
 {
   // Commit whatever is pending for the report.
   report_metrics();
-  last_slot_tx = {};
+  last_slot_tx                    = {};
+  slots_since_last_1ms_tput_log   = 0;
+  ms_since_last_1ms_tput_log      = 0.0;
+  throughput_log_elapsed_ms       = 0.0;
 }
 
 scheduler_ue_metrics
@@ -649,6 +693,15 @@ cell_metrics_handler::ue_metric_context::compute_report(std::chrono::millisecond
               ue_index, data.sum_dl_tb_bytes, metric_report_period.count(), 
               ret.dl_brate_kbps, ret.dl_brate_kbps / 1000.0, data.count_uci_harq_acks,
               ret.ul_brate_kbps, ret.ul_brate_kbps / 1000.0, data.count_crc_acks); 
+  logger.info("[UL-TPUT-REPORT] UE{} period_ms={} sum_ul_tb_bytes={} ul_brate_kbps={:.2f} ul_brate_mbps={:.2f} "
+              "ul_nof_ok={} ul_nof_nok={}",
+              ue_index,
+              metric_report_period.count(),
+              data.sum_ul_tb_bytes,
+              ret.ul_brate_kbps,
+              ret.ul_brate_kbps / 1000.0,
+              data.count_crc_acks,
+              data.count_crc_pdus - data.count_crc_acks);
   ret.dl_nof_ok           = data.count_uci_harq_acks;
   ret.dl_nof_nok          = data.count_uci_harqs - data.count_uci_harq_acks;
   ret.ul_nof_ok           = data.count_crc_acks;
@@ -733,3 +786,5 @@ void scheduler_metrics_handler::rem_cell(du_cell_index_t cell_index)
 {
   cells.erase(cell_index);
 }
+
+

@@ -44,7 +44,9 @@ make_sched_cell_config_req(du_cell_index_t                            cell_index
 
 /// Create scheduler UE Configuration Request based on DU UE configuration context.
 sched_ue_config_request create_scheduler_ue_config_request(const du_ue_context&         ue_ctx,
-                                                           const du_ue_resource_config& ue_res_cfg);
+                                                           const du_ue_resource_config& ue_res_cfg,
+                                                           uint64_t                     trace_seq = 0);
 
 } // namespace srs_du
 } // namespace srsran
+

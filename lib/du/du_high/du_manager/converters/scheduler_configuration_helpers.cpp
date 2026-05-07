@@ -26,6 +26,7 @@
 #include "srsran/scheduler/config/logical_channel_config_factory.h"
 #include "srsran/scheduler/config/sched_cell_config_helpers.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/support/qos_trace_seq_registry.h"
 
 using namespace srsran;
 using namespace srs_du;
@@ -112,9 +113,11 @@ srsran::srs_du::make_sched_cell_config_req(du_cell_index_t                      
 }
 
 sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const du_ue_context&         ue_ctx,
-                                                                           const du_ue_resource_config& ue_res_cfg)
+                                                                           const du_ue_resource_config& ue_res_cfg,
+                                                                           uint64_t                     trace_seq)
 {
   sched_ue_config_request sched_cfg;
+  qos_trace_seq_registry::set_last_seq(fmt::underlying(ue_ctx.ue_index), trace_seq);
 
   sched_cfg.cells.emplace();
   sched_cfg.cells->resize(1);
@@ -164,9 +167,21 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
                   drb.qos.gbr_qos_info.value().max_br_dl / 1000000.0,
                   drb.qos.gbr_qos_info.value().max_br_ul,
                   drb.qos.gbr_qos_info.value().max_br_ul / 1000000.0);
+      logger.info("[DU-QOS-TRACE] ue={} seq={} stage=sched_cfg_build drb={} lcid={} five_qi={} has_gbr=true",
+                  ue_ctx.ue_index,
+                  trace_seq,
+                  drb.drb_id,
+                  fmt::underlying(drb.lcid),
+                  static_cast<int>(five_qi));
     } else {
       logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, has_gbr=false (non-GBR flow)",
                   ue_ctx.ue_index,
+                  drb.drb_id,
+                  fmt::underlying(drb.lcid),
+                  static_cast<int>(five_qi));
+      logger.info("[DU-QOS-TRACE] ue={} seq={} stage=sched_cfg_build drb={} lcid={} five_qi={} has_gbr=false",
+                  ue_ctx.ue_index,
+                  trace_seq,
                   drb.drb_id,
                   fmt::underlying(drb.lcid),
                   static_cast<int>(five_qi));
@@ -177,4 +192,5 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
 
   return sched_cfg;
 }
+
 

@@ -27,6 +27,7 @@
 #include "srsran/asn1/f1ap/common.h"
 #include "srsran/f1ap/f1ap_message.h"
 #include "srsran/support/async/async_no_op_task.h"
+#include <atomic>
 
 using namespace srsran;
 using namespace srs_du;
@@ -82,6 +83,9 @@ void f1ap_du_ue_context_modification_procedure::operator()(coro_context<async_ta
 
 void f1ap_du_ue_context_modification_procedure::create_du_request(const asn1::f1ap::ue_context_mod_request_s& msg)
 {
+  static std::atomic<uint64_t> f1ap_qos_seq{0};
+  const uint64_t               f1ap_seq = ++f1ap_qos_seq;
+
   // Construct DU request.
   du_request.ue_index = ue.context.ue_index;
 
@@ -113,8 +117,19 @@ void f1ap_du_ue_context_modification_procedure::create_du_request(const asn1::f1
   // >> Pass DRBs to modify.
   // Note: This field is used during RRC Reestablishment.
   for (const auto& drb : msg->drbs_to_be_modified_list) {
-    du_request.drbs_to_mod.push_back(make_drb_to_modify(drb.value().drbs_to_be_modified_item()));
+    const auto& drb_mod_item = drb.value().drbs_to_be_modified_item();
+    du_request.drbs_to_mod.push_back(make_drb_to_modify(drb_mod_item));
+    logger.info("[DU-QOS-TRACE] ue={} f1ap_seq={} stage=f1ap_rx drb={} action=enqueue_drb_mod",
+                ue.context.ue_index,
+                f1ap_seq,
+                drb_mod_item.drb_id);
   }
+  logger.info("[DU-QOS-TRACE] ue={} f1ap_seq={} stage=f1ap_rx summary: drbs_to_mod={} drbs_to_setup={} drbs_to_rem={}",
+              ue.context.ue_index,
+              f1ap_seq,
+              du_request.drbs_to_mod.size(),
+              du_request.drbs_to_setup.size(),
+              du_request.drbs_to_rem.size());
 
   // >> Pass DRBs to remove
   for (const auto& drb : msg->drbs_to_be_released_list) {
@@ -269,3 +284,4 @@ async_task<void> f1ap_du_ue_context_modification_procedure::handle_tx_action_ind
                f1ap_log_prefix{ue.context, name()});
   return launch_no_op_task();
 }
+
