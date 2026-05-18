@@ -190,7 +190,6 @@ class cell_metrics_handler final : public sched_metrics_ue_configurator
   non_persistent_data data;
   unsigned            slots_since_last_1ms_tput_log = 0;
   double              ms_since_last_1ms_tput_log    = 0.0;
-  double              throughput_log_elapsed_ms      = 0.0;
 
 public:
   /// \brief Creates a scheduler UE metrics handler for a given cell. In case the metrics_report_period is zero,
