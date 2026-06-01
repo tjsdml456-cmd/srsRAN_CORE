@@ -187,7 +187,29 @@ public:
   /// \brief Returns a list of LCIDs sorted based on decreasing order of priority.
   span<const lcid_t> get_prioritized_logical_channels() const { return sorted_channels; }
 
+  /// \brief Configure per-LC token bucket (GBR/MBR in bps from core QoS). GBR=0 disables limiting.
+  void set_token_rates(lcid_t lcid, uint64_t gbr_bps, uint64_t mbr_bps, bool air_rate_cap = false);
+
+  bool is_token_throttled(ran_slice_id_t slice_id) const;
+
+  unsigned get_dl_token_budget(lcid_t lcid) const;
+
+  bool dl_air_rate_cap_enabled(ran_slice_id_t slice_id) const;
+
+  unsigned get_dl_gbr_air_cap_grant_bytes(ran_slice_id_t slice_id) const;
+
+  unsigned get_dl_grant_byte_budget(ran_slice_id_t slice_id) const;
+
+  void reset_drbs_rate_averages();
+
+  /// Resize per-LC moving average to match configured QoS averaging window (e.g. 300 ms after PCF update).
+  void apply_lc_rate_avg_window(lcid_t lcid);
+
+  void debit_dl_grant_tokens(ran_slice_id_t slice_id, unsigned tbs_bytes);
+
 private:
+  void sync_lc_token_rates_from_config(lcid_t lcid);
+
   struct channel_context : public intrusive_double_linked_list_element<> {
     /// Whether the configured logical channel is currently active.
     bool active = false;
@@ -201,6 +223,10 @@ private:
     slot_point hol_toa;
     /// Slice associated with this channel.
     std::optional<ran_slice_id_t> slice_id;
+    double       token_bytes   = 0.0;
+    uint64_t     tb_gbr_bps    = 0;
+    uint64_t     tb_mbr_bps    = 0;
+    bool         air_rate_cap  = false;
 
     void reset();
   };
@@ -283,3 +309,4 @@ unsigned build_dl_transport_block_info(dl_msg_tb_info&             tb_info,
                                        ran_slice_id_t              slice_id);
 
 } // namespace srsran
+

@@ -27,6 +27,17 @@ using namespace srsran;
 // Initial capacity for the slice_lcid_list_lookup vector.
 static constexpr unsigned INITIAL_SLICE_CAPACITY = 4;
 
+// Matches dl_logical_channel_manager / priority-4 scheduler_time_qos.
+static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
+
+static unsigned get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
+{
+  if (qos.qos.average_window_ms.has_value()) {
+    return qos.qos.average_window_ms.value();
+  }
+  return QOS_RATE_AVG_WINDOW_MS;
+}
+
 ul_logical_channel_manager::ul_logical_channel_manager(subcarrier_spacing              scs,
                                                        logical_channel_config_list_ptr log_channels_configs) :
   slots_per_sec(get_nof_slots_per_subframe(scs) * 1000)
@@ -131,10 +142,10 @@ void ul_logical_channel_manager::configure(logical_channel_config_list_ptr lc_ch
   for (logical_channel_config_ptr lc_ch : *lc_channels_configs) {
     groups[lc_ch->lc_group].active = true;
     if (lc_ch->qos.has_value() and lc_ch->qos.value().gbr_qos_info.has_value()) {
-      // Track average rate for GBR logical channel groups.
-      // Note: average window size must be set for GBR QoS Flows.
-      unsigned win_size_msec = lc_ch->qos.value().qos.average_window_ms.value();
-      groups[lc_ch->lc_group].avg_bytes_per_slot.resize(win_size_msec * slots_per_sec / 1000);
+      // Track average rate for GBR logical channel groups (default 300 ms if unset, e.g. 5QI 9 + PCF GBR).
+      const unsigned win_size_msec  = get_qos_rate_avg_window_msec(lc_ch->qos.value());
+      const unsigned win_size_slots = std::max(1U, win_size_msec * slots_per_sec / 1000);
+      groups[lc_ch->lc_group].avg_bytes_per_slot.resize(win_size_slots);
     }
   }
   for (unsigned i = 0; i != groups.size(); ++i) {

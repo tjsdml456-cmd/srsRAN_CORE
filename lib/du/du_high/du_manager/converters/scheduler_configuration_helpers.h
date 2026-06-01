@@ -43,9 +43,10 @@ make_sched_cell_config_req(du_cell_index_t                            cell_index
                            const std::optional<si_scheduling_config>& si_sched_cfg);
 
 /// Create scheduler UE Configuration Request based on DU UE configuration context.
+/// \param qos_reconfig_wall_us Wall-clock time (us since epoch) for QoS reconfig log correlation; 0 if unknown.
 sched_ue_config_request create_scheduler_ue_config_request(const du_ue_context&         ue_ctx,
                                                            const du_ue_resource_config& ue_res_cfg,
-                                                           uint64_t                     trace_seq = 0);
+                                                           unsigned long                qos_reconfig_wall_us);
 
 } // namespace srs_du
 } // namespace srsran

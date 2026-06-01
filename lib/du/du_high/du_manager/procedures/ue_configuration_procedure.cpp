@@ -26,7 +26,6 @@
 #include "srsran/mac/mac_ue_configurator.h"
 #include "srsran/rlc/rlc_factory.h"
 #include <algorithm>
-#include <atomic>
 
 using namespace srsran;
 using namespace srs_du;
@@ -245,10 +244,6 @@ void ue_configuration_procedure::clear_old_ue_context()
 
 async_task<mac_ue_reconfiguration_response> ue_configuration_procedure::update_mac_and_sched()
 {
-  static auto& du_qos_logger = srslog::fetch_basic_logger("DU-MGR", false);
-  static std::atomic<uint64_t> du_qos_trace_seq{0};
-  const uint64_t               trace_seq = ++du_qos_trace_seq;
-
   // Create Request to MAC to reconfigure existing UE.
   mac_ue_reconfiguration_request mac_ue_reconf_req;
   mac_ue_reconf_req.ue_index           = request.ue_index;
@@ -283,34 +278,11 @@ async_task<mac_ue_reconfiguration_response> ue_configuration_procedure::update_m
     lc_ch.dl_bearer = &bearer.connector.mac_tx_sdu_notifier;
   }
   auto& failed_drbs = ue_res_cfg_resp.failed_drbs;
-  unsigned drb_mod_applied_count = 0;
   for (const auto& drb : request.drbs_to_mod) {
     if (std::find(failed_drbs.begin(), failed_drbs.end(), drb.drb_id) != failed_drbs.end()) {
       // The DRB failed to be modified. Carry on with other DRBs.
-      du_qos_logger.info("[DU-QOS-TRACE] ue={} seq={} drb={} action=skip reason=failed_drb_in_resource_update",
-                         request.ue_index,
-                         trace_seq,
-                         drb.drb_id);
       continue;
     }
-
-    if (ue->resources->drbs.contains(drb.drb_id)) {
-      const du_ue_drb_config& drb_cfg = ue->resources->drbs[drb.drb_id];
-      du_qos_logger.info("[DU-QOS-TRACE] ue={} seq={} drb={} lcid={} action=apply_to_mac_sched five_qi={} has_gbr={}",
-                         request.ue_index,
-                         trace_seq,
-                         drb.drb_id,
-                         fmt::underlying(drb_cfg.lcid),
-                         static_cast<int>(drb_cfg.qos.qos_desc.get_5qi()),
-                         drb_cfg.qos.gbr_qos_info.has_value());
-    } else {
-      du_qos_logger.warning("[DU-QOS-TRACE] ue={} seq={} drb={} action=missing_drb_cfg_in_resources",
-                            request.ue_index,
-                            trace_seq,
-                            drb.drb_id);
-    }
-
-    ++drb_mod_applied_count;
     du_ue_drb& bearer = *ue->bearers.drbs().at(drb.drb_id);
     mac_ue_reconf_req.bearers_to_addmod.emplace_back();
     auto& lc_ch     = mac_ue_reconf_req.bearers_to_addmod.back();
@@ -320,17 +292,8 @@ async_task<mac_ue_reconfiguration_response> ue_configuration_procedure::update_m
   }
 
   // Create Scheduler UE Reconfig Request that will be embedded in the MAC configuration request.
-  mac_ue_reconf_req.sched_cfg               = create_scheduler_ue_config_request(*ue, *ue->resources, trace_seq);
+  mac_ue_reconf_req.sched_cfg = create_scheduler_ue_config_request(*ue, *ue->resources, 0);
   mac_ue_reconf_req.sched_cfg.reestablished = ue->reestablished_cfg_pending != nullptr;
-  du_qos_logger.info("[DU-QOS-TRACE] ue={} seq={} update_mac_and_sched summary: drbs_to_mod_req={} drbs_to_mod_applied={} "
-                     "bearers_to_addmod={} bearers_to_rem={} reestablished={}",
-                     request.ue_index,
-                     trace_seq,
-                     request.drbs_to_mod.size(),
-                     drb_mod_applied_count,
-                     mac_ue_reconf_req.bearers_to_addmod.size(),
-                     mac_ue_reconf_req.bearers_to_rem.size(),
-                     mac_ue_reconf_req.sched_cfg.reestablished);
 
   return du_params.mac.mgr.get_ue_configurator().handle_ue_reconfiguration_request(mac_ue_reconf_req);
 }
@@ -539,5 +502,4 @@ void ue_configuration_procedure::handle_rrc_reconfiguration_complete_ind()
                    fmt::underlying(ue->ue_index));
   }
 }
-
 

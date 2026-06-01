@@ -37,8 +37,10 @@ namespace srsran {
 struct logical_channel_config {
   /// QoS specific features associated with a logical channel (only used by DRBs).
   struct qos_info {
-    /// QoS characteristics associated with the logical channel.
-    standardized_qos_characteristics qos;
+    /// 5QI from core/NGAP (used for QoS-change signature; characteristics alone are not unique per 5QI).
+    five_qi_t five_qi = five_qi_t::invalid;
+    /// QoS characteristics associated with the logical channel (mutable for scheduler rate-window overrides).
+    mutable standardized_qos_characteristics qos;
     /// The ARP Priority Level indicates a priority in scheduling resources among QoS Flows. The lowest Priority Level
     /// value corresponds to the highest priority. See TS 23.501, clause 5.7.2.2.
     arp_prio_level_t arp_priority;
@@ -47,7 +49,8 @@ struct logical_channel_config {
 
     bool operator==(const qos_info& rhs) const
     {
-      return qos == rhs.qos && arp_priority == rhs.arp_priority && gbr_qos_info == rhs.gbr_qos_info;
+      return five_qi == rhs.five_qi && qos == rhs.qos && arp_priority == rhs.arp_priority &&
+             gbr_qos_info == rhs.gbr_qos_info;
     }
   };
 
@@ -71,3 +74,4 @@ struct logical_channel_config {
 };
 
 } // namespace srsran
+

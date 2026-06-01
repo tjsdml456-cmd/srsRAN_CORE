@@ -23,10 +23,10 @@
 #include "scheduler_configuration_helpers.h"
 #include "../du_ue/du_ue.h"
 #include "srsran/du/du_cell_config.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/scheduler/config/logical_channel_config_factory.h"
 #include "srsran/scheduler/config/sched_cell_config_helpers.h"
 #include "srsran/srslog/srslog.h"
-#include "srsran/support/qos_trace_seq_registry.h"
 
 using namespace srsran;
 using namespace srs_du;
@@ -112,12 +112,18 @@ srsran::srs_du::make_sched_cell_config_req(du_cell_index_t                      
   return sched_req;
 }
 
-sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const du_ue_context&         ue_ctx,
-                                                                           const du_ue_resource_config& ue_res_cfg,
-                                                                           uint64_t                     trace_seq)
+namespace srsran {
+namespace srs_du {
+
+sched_ue_config_request create_scheduler_ue_config_request(const du_ue_context&         ue_ctx,
+                                                           const du_ue_resource_config& ue_res_cfg,
+                                                           unsigned long                qos_reconfig_wall_us)
 {
   sched_ue_config_request sched_cfg;
-  qos_trace_seq_registry::set_last_seq(fmt::underlying(ue_ctx.ue_index), trace_seq);
+  static auto&            logger = srslog::fetch_basic_logger("DU-MGR", false);
+  if (qos_reconfig_wall_us != 0) {
+    logger.info("[SCHED-LC] UE{} QoS reconfig wall_us={}", ue_ctx.ue_index, qos_reconfig_wall_us);
+  }
 
   sched_cfg.cells.emplace();
   sched_cfg.cells->resize(1);
@@ -145,13 +151,23 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
     sched_lc_ch.qos.emplace();
 
     five_qi_t five_qi           = drb.qos.qos_desc.get_5qi();
-    sched_lc_ch.qos->qos        = *get_5qi_to_qos_characteristics_mapping(five_qi);
+    sched_lc_ch.qos->five_qi      = five_qi;
+    sched_lc_ch.qos->qos          = *get_5qi_to_qos_characteristics_mapping(five_qi);
     sched_lc_ch.qos->arp_priority = drb.qos.alloc_retention_prio.prio_level_arp;
-    sched_lc_ch.qos->gbr_qos_info = drb.qos.gbr_qos_info;
+
+    const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(five_qi);
+    const bool  is_gbr_5qi =
+        qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
+                                  qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
+    if (is_gbr_5qi and drb.qos.gbr_qos_info.has_value()) {
+      sched_lc_ch.qos->gbr_qos_info            = drb.qos.gbr_qos_info;
+      sched_lc_ch.qos->qos.average_window_ms = 300;
+    } else {
+      sched_lc_ch.qos->gbr_qos_info.reset();
+    }
 
     // Log logical channel QoS configuration (5QI and GBR values)
-    static auto& logger = srslog::fetch_basic_logger("DU-MGR", false);
-    if (drb.qos.gbr_qos_info.has_value()) {
+    if (sched_lc_ch.qos->gbr_qos_info.has_value()) {
       logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, "
                   "GBR_DL={} bps ({:.2f} Mbps), GBR_UL={} bps ({:.2f} Mbps), "
                   "MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
@@ -159,29 +175,17 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
                   drb.drb_id,
                   fmt::underlying(drb.lcid),
                   static_cast<int>(five_qi),
-                  drb.qos.gbr_qos_info.value().gbr_dl,
-                  drb.qos.gbr_qos_info.value().gbr_dl / 1000000.0,
-                  drb.qos.gbr_qos_info.value().gbr_ul,
-                  drb.qos.gbr_qos_info.value().gbr_ul / 1000000.0,
-                  drb.qos.gbr_qos_info.value().max_br_dl,
-                  drb.qos.gbr_qos_info.value().max_br_dl / 1000000.0,
-                  drb.qos.gbr_qos_info.value().max_br_ul,
-                  drb.qos.gbr_qos_info.value().max_br_ul / 1000000.0);
-      logger.info("[DU-QOS-TRACE] ue={} seq={} stage=sched_cfg_build drb={} lcid={} five_qi={} has_gbr=true",
-                  ue_ctx.ue_index,
-                  trace_seq,
-                  drb.drb_id,
-                  fmt::underlying(drb.lcid),
-                  static_cast<int>(five_qi));
+                  sched_lc_ch.qos->gbr_qos_info.value().gbr_dl,
+                  sched_lc_ch.qos->gbr_qos_info.value().gbr_dl / 1000000.0,
+                  sched_lc_ch.qos->gbr_qos_info.value().gbr_ul,
+                  sched_lc_ch.qos->gbr_qos_info.value().gbr_ul / 1000000.0,
+                  sched_lc_ch.qos->gbr_qos_info.value().max_br_dl,
+                  sched_lc_ch.qos->gbr_qos_info.value().max_br_dl / 1000000.0,
+                  sched_lc_ch.qos->gbr_qos_info.value().max_br_ul,
+                  sched_lc_ch.qos->gbr_qos_info.value().max_br_ul / 1000000.0);
     } else {
       logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, has_gbr=false (non-GBR flow)",
                   ue_ctx.ue_index,
-                  drb.drb_id,
-                  fmt::underlying(drb.lcid),
-                  static_cast<int>(five_qi));
-      logger.info("[DU-QOS-TRACE] ue={} seq={} stage=sched_cfg_build drb={} lcid={} five_qi={} has_gbr=false",
-                  ue_ctx.ue_index,
-                  trace_seq,
                   drb.drb_id,
                   fmt::underlying(drb.lcid),
                   static_cast<int>(five_qi));
@@ -192,5 +196,8 @@ sched_ue_config_request srsran::srs_du::create_scheduler_ue_config_request(const
 
   return sched_cfg;
 }
+
+} // namespace srs_du
+} // namespace srsran
 
 

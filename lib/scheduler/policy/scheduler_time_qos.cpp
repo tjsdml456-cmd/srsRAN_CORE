@@ -24,8 +24,8 @@
 #include "../slicing/slice_ue_repository.h"
 #include "../support/csi_report_helpers.h"
 #include "../ue_scheduling/grant_params_selector.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/srslog/srslog.h"
-#include "srsran/support/qos_trace_seq_registry.h"
 #include <algorithm>
 
 using namespace srsran;
@@ -36,6 +36,12 @@ static constexpr unsigned MAX_PF_COEFF = 10;
 
 // [Implementation-defined] Maximum number of slots skipped between scheduling opportunities.
 static constexpr unsigned MAX_SLOT_SKIPPED = 20;
+
+// GBR/DC-GBR use TBS air cap; 10M non-GBR uses MAC token path only (matches dl_logical_channel_manager).
+static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 14'000'000;
+
+// Averaging window for GBR rate weights / LC bit-rate tracking (matches priority-4 + dl_logical_channel_manager).
+static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
 
 scheduler_time_qos::scheduler_time_qos(const scheduler_ue_expert_config& expert_cfg_, du_cell_index_t cell_index_) :
   params(std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg)), cell_index(cell_index_)
@@ -166,39 +172,20 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
 
   static constexpr uint16_t max_combined_prio_level = qos_prio_level_t::max() * arp_prio_level_t::max();
   uint16_t                  min_combined_prio       = max_combined_prio_level;
-  lcid_t                    min_prio_lcid           = lcid_t::INVALID_LCID;
-  uint16_t                  min_prio_qos_level      = 0;
-  uint16_t                  min_prio_arp_level      = 0;
   double                    gbr_weight              = 0;
   double                    delay_weight            = 0;
   static auto&              logger                  = srslog::fetch_basic_logger("SCHED", false);
   if (policy_params.gbr_enabled or policy_params.priority_enabled or policy_params.pdb_enabled) {
     for (logical_channel_config_ptr lc : *u.logical_channels()) {
-      const unsigned pending_dl_bytes = u.pending_dl_newtx_bytes(lc->lcid);
-      if (not u.contains(lc->lcid) or not lc->qos.has_value() or pending_dl_bytes == 0) {
+      if (not u.contains(lc->lcid) or not lc->qos.has_value() or u.pending_dl_newtx_bytes(lc->lcid) == 0) {
         // LC is not part of the slice, No QoS config was provided for this LC or there is no pending data for this LC
         continue;
       }
 
       // Track the LC with the lowest combined priority (combining QoS and ARP priority levels).
       if (policy_params.priority_enabled) {
-        const uint16_t lc_combined_prio =
-            static_cast<uint16_t>(lc->qos->qos.priority.value() * lc->qos->arp_priority.value());
-        const uint64_t trace_seq = qos_trace_seq_registry::get_last_seq(fmt::underlying(u.ue_index()));
-        logger.info("[DL-LC-QOS] UE{} seq={} LCID{} pending_dl={} qos_prio={} arp_prio={} combined_prio={}",
-                    u.ue_index(),
-                    trace_seq,
-                    fmt::underlying(lc->lcid),
-                    pending_dl_bytes,
-                    lc->qos->qos.priority.value(),
-                    lc->qos->arp_priority.value(),
-                    lc_combined_prio);
-        if (lc_combined_prio <= min_combined_prio) {
-          min_combined_prio  = lc_combined_prio;
-          min_prio_lcid      = lc->lcid;
-          min_prio_qos_level = lc->qos->qos.priority.value();
-          min_prio_arp_level = lc->qos->arp_priority.value();
-        }
+        min_combined_prio = std::min(
+            static_cast<uint16_t>(lc->qos->qos.priority.value() * lc->qos->arp_priority.value()), min_combined_prio);
       }
 
       slot_point hol_toa = u.dl_hol_toa(lc->lcid);
@@ -276,15 +263,9 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
                                                       : 1.0;
 
   // Log DL priority calculation every evaluation.
-  const uint64_t trace_seq = qos_trace_seq_registry::get_last_seq(fmt::underlying(u.ue_index()));
-  logger.info("DL Priority calc: UE{} seq={} min_combined_prio={}, min_lcid={}, min_qos_prio={}, min_arp_prio={}, "
-              "prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
+  logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
               u.ue_index(),
-              trace_seq,
               min_combined_prio,
-              fmt::underlying(min_prio_lcid),
-              min_prio_qos_level,
-              min_prio_arp_level,
               prio_weight,
               pf_weight,
               gbr_weight,
@@ -300,15 +281,7 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
                                      double                           avg_ul_rate,
                                      const time_qos_scheduler_config& policy_params)
 {
-  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
-  const bool   has_pending_sr = u.has_pending_sr();
-  if (has_pending_sr or avg_ul_rate == 0) {
-    // Log SR-based boost path to correlate SR arrival and first UL scheduling.
-    logger.info("[UL-SR-BOOST] UE{} has_pending_sr={} avg_ul_rate={:.2f} estim_ul_rate={:.2f} -> prio=max",
-                u.ue_index(),
-                has_pending_sr,
-                avg_ul_rate,
-                estim_ul_rate);
+  if (u.has_pending_sr() or avg_ul_rate == 0) {
     // Highest priority to SRs and UEs that have not yet received any allocation.
     return max_sched_priority;
   }
@@ -316,36 +289,9 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
   static constexpr uint16_t max_combined_prio_level = qos_prio_level_t::max() * arp_prio_level_t::max();
   uint16_t                  min_combined_prio       = max_combined_prio_level;
   double                    gbr_weight              = 0;
-  double                    ul_queue_delay_ms_sum   = 0;
-  uint64_t                  total_pending_ul_bytes  = 0;
   if (policy_params.gbr_enabled or policy_params.priority_enabled) {
     for (logical_channel_config_ptr lc : *u.logical_channels()) {
-      if (not u.contains(lc->lcid) or not lc->qos.has_value()) {
-        continue;
-      }
-
-      lcg_id_t        lcg_id        = u.get_lcg_id(lc->lcid);
-      const uint32_t  pending_bytes = u.pending_ul_unacked_bytes(lc->lc_group);
-      const double    ul_rate       = u.ul_avg_bit_rate(lcg_id);
-      total_pending_ul_bytes += pending_bytes;
-
-      if (pending_bytes > 0) {
-        double queue_delay_ms = 0.0;
-        if (ul_rate > 0.0) {
-          queue_delay_ms = (static_cast<double>(pending_bytes) * 8.0 * 1000.0) / ul_rate;
-          ul_queue_delay_ms_sum += queue_delay_ms;
-        }
-        logger.info(
-            "[UL-BSR-SNAPSHOT] UE{} LCID{} LCG{} pending_ul_unacked_bytes={} ul_avg_rate={:.2f} queue_delay_ms={:.3f}",
-            u.ue_index(),
-            fmt::underlying(lc->lcid),
-            fmt::underlying(lcg_id),
-            pending_bytes,
-            ul_rate,
-            queue_delay_ms);
-      }
-
-      if (pending_bytes == 0) {
+      if (not u.contains(lc->lcid) or not lc->qos.has_value() or u.pending_ul_unacked_bytes(lc->lc_group) == 0) {
         // LC is not part of the slice or no QoS config was provided for this LC or there are no pending bytes for this
         // group.
         continue;
@@ -363,6 +309,8 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
       }
 
       // GBR flow.
+      lcg_id_t lcg_id  = u.get_lcg_id(lc->lcid);
+      double   ul_rate = u.ul_avg_bit_rate(lcg_id);
       if (ul_rate != 0) {
         gbr_weight += std::min(lc->qos->gbr_qos_info->gbr_ul / ul_rate, max_metric_weight);
       } else {
@@ -378,25 +326,17 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
   double pf_weight   = compute_pf_metric(estim_ul_rate, avg_ul_rate, policy_params.pf_fairness_coeff);
-  const uint64_t trace_seq = qos_trace_seq_registry::get_last_seq(fmt::underlying(u.ue_index()));
 
-  // UL queueing proxy log for correlation with QoS transition and scheduler decisions.
-  logger.info("[UL-DELAY-WEIGHT] UE{} total_pending_ul_unacked_bytes={} ul_queue_delay_ms_sum={:.3f}",
-              u.ue_index(),
-              total_pending_ul_bytes,
-              ul_queue_delay_ms_sum);
-
-  // Log UL QoS weights before combining.
-  logger.info("UL QoS Weights - ue={}, seq={}, pf_weight={:.6f}, gbr_weight={:.6f}, prio_weight={:.6f}, "
-               "delay_weight=1.0, estim_rate={:.2f}, avg_rate={:.2f}, ul_queue_delay_ms_sum={:.3f}",
+  // Log UL QoS weights before combining
+  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
+  logger.info("UL QoS Weights - ue={}, pf_weight={:.6f}, gbr_weight={:.6f}, prio_weight={:.6f}, "
+               "delay_weight=1.0, estim_rate={:.2f}, avg_rate={:.2f}",
                u.ue_index(),
-               trace_seq,
                pf_weight,
                gbr_weight,
                prio_weight,
                estim_ul_rate,
-               avg_ul_rate,
-               ul_queue_delay_ms_sum);
+               avg_ul_rate);
 
   return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, 1.0, policy_params);
 }
@@ -412,41 +352,84 @@ scheduler_time_qos::ue_ctxt::ue_ctxt(du_ue_index_t             ue_index_,
 {
 }
 
+void scheduler_time_qos::ue_ctxt::apply_core_qos_token_bucket_rates(const slice_ue& u)
+{
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+
+  uint64_t qos_signature = 0;
+  for (logical_channel_config_ptr lc : *u.logical_channels()) {
+    if (not u.contains(lc->lcid) or not lc->qos.has_value()) {
+      continue;
+    }
+    if (lc->qos->five_qi != five_qi_t::invalid) {
+      qos_signature ^= (static_cast<uint64_t>(five_qi_to_uint(lc->qos->five_qi)) << 32);
+    }
+
+    uint64_t gbr_bps = 0;
+    uint64_t mbr_bps = 0;
+    bool     enforce_token_bucket = false;
+    if (lc->qos->gbr_qos_info.has_value()) {
+      const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
+      if (qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
+                                    qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr)) {
+        enforce_token_bucket = true;
+        gbr_bps              = lc->qos->gbr_qos_info->gbr_dl;
+        mbr_bps              = lc->qos->gbr_qos_info->max_br_dl;
+        if (mbr_bps == 0) {
+          mbr_bps = gbr_bps;
+        }
+        qos_signature ^= gbr_bps ^ (mbr_bps << 1);
+      }
+    }
+
+    const bool air_cap = enforce_token_bucket and gbr_bps >= DL_AIR_TBS_CAP_MIN_GBR_BPS;
+    u.set_dl_token_rates(lc->lcid, gbr_bps, mbr_bps, air_cap);
+
+    // Match priority-4: 300 ms averaging window for rate tracking (overrides 5QI table e.g. 2000 ms).
+    if (enforce_token_bucket) {
+      lc->qos->qos.average_window_ms = QOS_RATE_AVG_WINDOW_MS;
+      u.apply_dl_lc_rate_avg_window(lc->lcid);
+    }
+  }
+
+  if (last_core_qos_signature.has_value() and qos_signature != last_core_qos_signature.value()) {
+    total_dl_avg_rate_ = exp_average_fast_start<double>{parent->exp_avg_alpha};
+    total_ul_avg_rate_ = exp_average_fast_start<double>{parent->exp_avg_alpha};
+    dl_sum_alloc_bytes = 0;
+    ul_sum_alloc_bytes = 0;
+    u.reset_dl_rate_averages();
+    logger.info("[QoS-CHANGE] UE{} core QoS signature {:x} -> {:x} (reset PF/LC rate history)",
+                ue_index,
+                last_core_qos_signature.value(),
+                qos_signature);
+  }
+  last_core_qos_signature = qos_signature;
+}
+
 void scheduler_time_qos::ue_ctxt::compute_dl_prio(const slice_ue& u,
                                                   slot_point      pdcch_slot,
                                                   slot_point      pdsch_slot,
                                                   unsigned        nof_slots_elapsed)
 {
-  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
   dl_prio = forbid_prio;
+
+  apply_core_qos_token_bucket_rates(u);
 
   // Process previous slot allocated bytes and compute average.
   compute_dl_avg_rate(u, nof_slots_elapsed);
 
+  if (u.dl_token_throttled()) {
+    static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+    logger.info("[TOKEN-THROTTLE] UE{} defer DL scheduling (token exhausted)", u.ue_index());
+    return;
+  }
+
   const ue_cell& ue_cc = u.get_cc();
 
-  // Log why DL scheduling is skipped for this UE.
-  if (not ue_cc.is_pdsch_enabled(pdcch_slot, pdsch_slot)) {
-    logger.info("[SCHED-SKIP][DL] UE{} reason=pdsch_disabled pdcch_slot={} pdsch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pdsch_slot.to_uint());
-    return;
-  }
-  if (not ue_cc.harqs.has_empty_dl_harqs()) {
-    logger.info("[SCHED-SKIP][DL] UE{} reason=no_empty_dl_harq pdcch_slot={} pdsch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pdsch_slot.to_uint());
-    return;
-  }
-  if (not u.has_pending_dl_newtx_bytes()) {
-    logger.info("[SCHED-SKIP][DL] UE{} reason=no_pending_dl_bytes pdcch_slot={} pdsch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pdsch_slot.to_uint());
-    return;
-  }
+  // This should be ensured at this point.
+  srsran_sanity_check(ue_cc.is_pdsch_enabled(pdcch_slot, pdsch_slot) and ue_cc.harqs.has_empty_dl_harqs() and
+                          u.has_pending_dl_newtx_bytes(),
+                      "Invalid DL UE candidate state");
 
   // [Implementation-defined] We consider only the SearchSpace defined in UE dedicated configuration.
   const search_space_id ue_ded_ss_id = to_search_space_id(2);
@@ -462,10 +445,6 @@ void scheduler_time_qos::ue_ctxt::compute_dl_prio(const slice_ue& u,
   auto mcs = ue_cc.link_adaptation_controller().calculate_dl_mcs(pdsch_cfg.mcs_table);
   if (not mcs.has_value()) {
     // CQI is either 0 or above 15, which means no DL.
-    logger.info("[SCHED-SKIP][DL] UE{} reason=invalid_dl_mcs pdcch_slot={} pdsch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pdsch_slot.to_uint());
     return;
   }
 
@@ -481,42 +460,15 @@ void scheduler_time_qos::ue_ctxt::compute_ul_prio(const slice_ue& u,
                                                   slot_point      pusch_slot,
                                                   unsigned        nof_slots_elapsed)
 {
-  static auto& logger = srslog::fetch_basic_logger("SCHED", false);
   ul_prio = forbid_prio;
 
   // Process bytes allocated in previous slot and compute average.
   compute_ul_avg_rate(u, nof_slots_elapsed);
 
   const ue_cell& ue_cc = u.get_cc();
-  // Log why UL scheduling is skipped for this UE.
-  if (ue_cc.is_in_fallback_mode()) {
-    logger.info("[SCHED-SKIP][UL] UE{} reason=fallback_mode pdcch_slot={} pusch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pusch_slot.to_uint());
-    return;
-  }
-  if (not ue_cc.is_pusch_enabled(pdcch_slot, pusch_slot)) {
-    logger.info("[SCHED-SKIP][UL] UE{} reason=pusch_disabled pdcch_slot={} pusch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pusch_slot.to_uint());
-    return;
-  }
-  if (not ue_cc.harqs.has_empty_ul_harqs()) {
-    logger.info("[SCHED-SKIP][UL] UE{} reason=no_empty_ul_harq pdcch_slot={} pusch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pusch_slot.to_uint());
-    return;
-  }
-  if (u.pending_ul_newtx_bytes() == 0) {
-    logger.info("[SCHED-SKIP][UL] UE{} reason=no_pending_ul_bytes pdcch_slot={} pusch_slot={}",
-                u.ue_index(),
-                pdcch_slot.to_uint(),
-                pusch_slot.to_uint());
-    return;
-  }
+  srsran_sanity_check(not ue_cc.is_in_fallback_mode() and ue_cc.is_pusch_enabled(pdcch_slot, pusch_slot) and
+                          ue_cc.harqs.has_empty_ul_harqs() and u.pending_ul_newtx_bytes() > 0,
+                      "UE UL candidate in invalid state");
 
   // [Implementation-defined] We consider only the SearchSpace defined in UE dedicated configuration.
   const search_space_id ue_ded_ss_id = to_search_space_id(2);
@@ -606,6 +558,5 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
-
 
 

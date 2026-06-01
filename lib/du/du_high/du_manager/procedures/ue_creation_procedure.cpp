@@ -240,7 +240,7 @@ async_task<mac_ue_create_response> ue_creation_procedure::create_mac_ue()
   }
 
   // Create Scheduler UE Config Request that will be embedded in the mac UE creation request.
-  mac_ue_create_msg.sched_cfg = create_scheduler_ue_config_request(*ue_ctx, *ue_ctx->resources);
+  mac_ue_create_msg.sched_cfg = create_scheduler_ue_config_request(*ue_ctx, *ue_ctx->resources, 0);
 
   // Request MAC to create new UE.
   return du_params.mac.mgr.get_ue_configurator().handle_ue_create_request(mac_ue_create_msg);
@@ -298,3 +298,4 @@ void ue_creation_procedure::connect_layer_bearers()
                            du_params.rlc.mac_ue_info_handler);
   }
 }
+

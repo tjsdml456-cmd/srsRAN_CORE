@@ -234,12 +234,9 @@ static f1ap_drb_info drb_info_from_f1ap_asn1(const asn1::f1ap::qos_info_c& asn1_
     out.s_nssai.sd = slice_differentiator::create(asn1_drb_info.snssai.sd.to_number()).value();
   }
 
-  const auto* five_qi_params = get_5qi_to_qos_characteristics_mapping(nondyn_5qi.five_qi);
-  const bool  is_gbr         = five_qi_params && (five_qi_params->res_type == qos_flow_resource_type::gbr ||
-                                         five_qi_params->res_type == qos_flow_resource_type::delay_critical_gbr);
-
-  // Note: As per TS 48.473, 9.3.1.45, "This IE shall be present for GBR QoS Flows only and is ignored otherwise."
-  if (is_gbr and asn1_drb_info.drb_qos.gbr_qos_flow_info_present) {
+  // TS 48.473: gBR_QosInformation is defined for GBR flows, but PCF may signal GFBR/MFBR on
+  // non-GBR 5QI (e.g. 9/80) for lab MBR caps. Always honor the IE when the CU-CP sends it.
+  if (asn1_drb_info.drb_qos.gbr_qos_flow_info_present) {
     auto& gbr     = out.drb_qos.gbr_qos_info.emplace();
     gbr.max_br_dl = asn1_drb_info.drb_qos.gbr_qos_flow_info.max_flow_bit_rate_dl;
     gbr.max_br_ul = asn1_drb_info.drb_qos.gbr_qos_flow_info.max_flow_bit_rate_ul;
@@ -751,4 +748,5 @@ srsran::make_drb_failed_to_setupmod(const asn1::f1ap::drbs_failed_to_be_modified
   fill_failed_drb(drb_item, asn1_type);
   return drb_item;
 }
+
 

@@ -36,6 +36,7 @@
 #include "srsran/ngap/ngap_setup.h"
 #include "srsran/ngap/ngap_types.h"
 #include "srsran/ran/cu_types.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/ran/tac.h"
 #include "srsran/security/security.h"
 #include <string>
@@ -323,11 +324,16 @@ inline bool fill_cu_cp_pdu_session_resource_setup_item_base(cu_cp_pdu_session_re
           asn1_flow_item.qos_flow_level_qos_params.add_qos_flow_info.to_string();
     }
 
-    if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
+    const five_qi_t setup_five_qi = qos_flow_setup_req_item.qos_flow_level_qos_params.qos_desc.get_5qi();
+    const auto*     setup_qos_chars = get_5qi_to_qos_characteristics_mapping(setup_five_qi);
+    const bool      setup_is_gbr_5qi =
+        setup_qos_chars != nullptr and (setup_qos_chars->res_type == qos_flow_resource_type::gbr or
+                                        setup_qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
+
+    if (setup_is_gbr_5qi and asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
       qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info =
           ngap_asn1_to_gbr_qos_flow_information(asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info);
-      
-      // Log GBR information from NGAP message
+
       static auto& logger = srslog::fetch_basic_logger("NGAP", false);
       logger.info("[NGAP-PARSE] QoS Flow {}: GBR info present - GBR_DL={} bps ({:.2f} Mbps), "
                   "GBR_UL={} bps ({:.2f} Mbps), MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
@@ -341,10 +347,16 @@ inline bool fill_cu_cp_pdu_session_resource_setup_item_base(cu_cp_pdu_session_re
                   qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul,
                   qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul / 1000000.0);
     } else {
-      // Log when GBR info is not present
+      qos_flow_setup_req_item.qos_flow_level_qos_params.gbr_qos_info.reset();
       static auto& logger = srslog::fetch_basic_logger("NGAP", false);
-      logger.warning("[NGAP-PARSE] QoS Flow {}: GBR info NOT present in NGAP message", 
-                     qos_flow_setup_req_item.qos_flow_id);
+      if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present and not setup_is_gbr_5qi) {
+        logger.warning("[NGAP-PARSE] QoS Flow {}: GBR IE ignored for non-GBR 5QI={}",
+                       qos_flow_setup_req_item.qos_flow_id,
+                       static_cast<int>(five_qi_to_uint(setup_five_qi)));
+      } else {
+        logger.warning("[NGAP-PARSE] QoS Flow {}: GBR info NOT present in NGAP message",
+                       qos_flow_setup_req_item.qos_flow_id);
+      }
     }
 
     if (asn1_flow_item.qos_flow_level_qos_params.reflective_qos_attribute_present) {
@@ -645,12 +657,17 @@ inline bool fill_cu_cp_pdu_session_resource_modify_item_base(
               asn1_flow_item.qos_flow_level_qos_params.add_qos_flow_info.to_string();
         }
 
-        // Fill GBR QoS information if present
-        if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
+        // Fill GBR QoS information only for GBR / DC-GBR 5QI (non-GBR = best-effort, no bitrate).
+        const five_qi_t parsed_five_qi = qos_flow_add_item.qos_flow_level_qos_params.qos_desc.get_5qi();
+        const auto*     qos_chars      = get_5qi_to_qos_characteristics_mapping(parsed_five_qi);
+        const bool      is_gbr_5qi =
+            qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
+                                      qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
+
+        if (is_gbr_5qi and asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present) {
           qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info =
               ngap_asn1_to_gbr_qos_flow_information(asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info);
-          
-          // Log GBR information from NGAP message
+
           static auto& logger = srslog::fetch_basic_logger("NGAP", false);
           logger.info("[NGAP-PARSE] QoS Flow {} (Modify): GBR info present - GBR_DL={} bps ({:.2f} Mbps), "
                       "GBR_UL={} bps ({:.2f} Mbps), MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
@@ -664,10 +681,16 @@ inline bool fill_cu_cp_pdu_session_resource_modify_item_base(
                       qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul,
                       qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.value().max_br_ul / 1000000.0);
         } else {
-          // Log when GBR info is not present
+          qos_flow_add_item.qos_flow_level_qos_params.gbr_qos_info.reset();
           static auto& logger = srslog::fetch_basic_logger("NGAP", false);
-          logger.warning("[NGAP-PARSE] QoS Flow {} (Modify): GBR info NOT present in NGAP message", 
-                         qos_flow_add_item.qos_flow_id);
+          if (asn1_flow_item.qos_flow_level_qos_params.gbr_qos_info_present and not is_gbr_5qi) {
+            logger.warning("[NGAP-PARSE] QoS Flow {} (Modify): GBR IE ignored for non-GBR 5QI={}",
+                           qos_flow_add_item.qos_flow_id,
+                           static_cast<int>(five_qi_to_uint(parsed_five_qi)));
+          } else {
+            logger.warning("[NGAP-PARSE] QoS Flow {} (Modify): GBR info NOT present in NGAP message",
+                           qos_flow_add_item.qos_flow_id);
+          }
         }
 
         if (asn1_flow_item.qos_flow_level_qos_params.reflective_qos_attribute_present) {
@@ -1216,4 +1239,5 @@ inline void fill_asn1_rrc_inactive_transition_report(asn1::ngap::rrc_inactive_tr
 
 } // namespace srs_cu_cp
 } // namespace srsran
+
 
