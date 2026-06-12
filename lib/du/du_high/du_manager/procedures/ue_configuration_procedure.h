@@ -26,6 +26,8 @@
 #include "procedure_logger.h"
 #include "srsran/du/du_high/du_manager/du_manager_params.h"
 #include "srsran/mac/mac_ue_configurator.h"
+#include <chrono>
+#include <optional>
 
 namespace srsran {
 namespace srs_du {
@@ -79,7 +81,11 @@ private:
   static_vector<srb_id_t, MAX_NOF_SRBS> srbs_added;
 
   std::vector<std::unique_ptr<du_ue_drb>> drbs_to_rem;
+
+  /// QoS DRB modify timing (coroutine-safe; must not be a local in operator()).
+  std::optional<std::chrono::steady_clock::time_point> qos_reconfig_t0;
 };
 
 } // namespace srs_du
 } // namespace srsran
+

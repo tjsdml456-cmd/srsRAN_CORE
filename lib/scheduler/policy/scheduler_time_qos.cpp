@@ -24,7 +24,10 @@
 #include "../slicing/slice_ue_repository.h"
 #include "../support/csi_report_helpers.h"
 #include "../ue_scheduling/grant_params_selector.h"
+#include "srsran/ran/logical_channel/lcid.h"
 #include "srsran/ran/qos/five_qi_qos_mapping.h"
+#include "srsran/ran/rb_id.h"
+#include "srsran/rlc/rlc_runtime_pdb_cache.h"
 #include "srsran/srslog/srslog.h"
 #include <algorithm>
 
@@ -363,6 +366,13 @@ void scheduler_time_qos::ue_ctxt::apply_core_qos_token_bucket_rates(const slice_
     }
     if (lc->qos->five_qi != five_qi_t::invalid) {
       qos_signature ^= (static_cast<uint64_t>(five_qi_to_uint(lc->qos->five_qi)) << 32);
+
+      if (const standardized_qos_characteristics* qos_chars =
+              get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
+          qos_chars != nullptr and not is_srb(lc->lcid)) {
+        const drb_id_t drb_id = uint_to_drb_id(static_cast<uint8_t>(static_cast<unsigned>(lc->lcid) - LCID_MIN_DRB + 1));
+        cache_rlc_bearer_runtime_pdb_ms(u.ue_index(), rb_id_t{drb_id}, qos_chars->packet_delay_budget_ms);
+      }
     }
 
     uint64_t gbr_bps = 0;

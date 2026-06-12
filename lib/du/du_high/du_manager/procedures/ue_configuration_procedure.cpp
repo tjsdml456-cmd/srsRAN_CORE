@@ -69,6 +69,21 @@ void ue_configuration_procedure::operator()(coro_context<async_task<f1ap_ue_cont
     CORO_EARLY_RETURN(make_ue_config_failure());
   }
 
+  qos_reconfig_t0.reset();
+  if (not request.drbs_to_mod.empty()) {
+    qos_reconfig_t0 = std::chrono::steady_clock::now();
+    for (const f1ap_drb_to_modify& drb_mod : request.drbs_to_mod) {
+      if (not ue->resources->drbs.contains(drb_mod.drb_id)) {
+        continue;
+      }
+      const five_qi_t five_qi = ue->resources->drbs[drb_mod.drb_id].qos.qos_desc.get_5qi();
+      logger.info("[QOS-RECONFIG-START] UE{} {} 5QI={}",
+                  fmt::underlying(request.ue_index),
+                  drb_mod.drb_id,
+                  static_cast<int>(five_qi));
+    }
+  }
+
   // > Stop traffic in the DRBs that need to be removed.
   CORO_AWAIT(stop_drbs_to_rem());
 
@@ -77,6 +92,32 @@ void ue_configuration_procedure::operator()(coro_context<async_task<f1ap_ue_cont
 
   // > Update MAC bearers.
   CORO_AWAIT_VALUE(mac_res, update_mac_and_sched());
+
+  if (qos_reconfig_t0.has_value()) {
+    const auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                                std::chrono::steady_clock::now() - qos_reconfig_t0.value())
+                                .count();
+    for (const f1ap_drb_to_modify& drb_mod : request.drbs_to_mod) {
+      if (std::find(ue_res_cfg_resp.failed_drbs.begin(), ue_res_cfg_resp.failed_drbs.end(), drb_mod.drb_id) !=
+          ue_res_cfg_resp.failed_drbs.end()) {
+        logger.warning("[QOS-RECONFIG-DONE] UE{} {} failed elapsed_us={}",
+                       fmt::underlying(request.ue_index),
+                       drb_mod.drb_id,
+                       elapsed_us);
+        continue;
+      }
+      if (not ue->resources->drbs.contains(drb_mod.drb_id)) {
+        continue;
+      }
+      const five_qi_t five_qi = ue->resources->drbs[drb_mod.drb_id].qos.qos_desc.get_5qi();
+      logger.info("[QOS-RECONFIG-DONE] UE{} {} 5QI={} elapsed_us={} mac_ok={}",
+                  fmt::underlying(request.ue_index),
+                  drb_mod.drb_id,
+                  static_cast<int>(five_qi),
+                  elapsed_us,
+                  mac_res.result);
+    }
+  }
 
   // > Destroy old DU UE bearers that are now detached from remaining layers.
   clear_old_ue_context();
