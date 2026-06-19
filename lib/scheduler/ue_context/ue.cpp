@@ -35,6 +35,7 @@ ue::ue(const ue_creation_command& cmd) :
   pcell_harq_pool(cmd.pcell_harq_pool),
   logger(srslog::fetch_basic_logger("SCHED")),
   dl_lc_ch_mgr(cell_cfg_common.dl_cfg_common.init_dl_bwp.generic_params.scs,
+               cmd.cfg.ue_index,
                cmd.starts_in_fallback,
                cmd.cfg.logical_channels()),
   ul_lc_ch_mgr(cell_cfg_common.dl_cfg_common.init_dl_bwp.generic_params.scs, cmd.cfg.logical_channels()),
@@ -221,3 +222,4 @@ unsigned ue::pending_ul_newtx_bytes() const
   // If there are no pending bytes, check if a SR is pending.
   return pending_bytes > 0 ? pending_bytes : (ul_lc_ch_mgr.has_pending_sr() ? SR_GRANT_BYTES : 0);
 }
+

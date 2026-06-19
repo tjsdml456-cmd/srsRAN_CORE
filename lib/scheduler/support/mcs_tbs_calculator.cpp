@@ -34,6 +34,16 @@ using namespace srsran;
 
 static constexpr unsigned NOF_BITS_PER_BYTE = 8U;
 
+// Skip grant when DM-RS/overhead leaves zero DL-SCH REs (avoids assert in get_effective_code_rate).
+static std::optional<float> try_get_dl_effective_code_rate(const dlsch_configuration& cfg)
+{
+  const dlsch_information info = get_dlsch_information(cfg);
+  if (info.nof_dl_sch_bits.value() == 0) {
+    return std::nullopt;
+  }
+  return info.get_effective_code_rate();
+}
+
 // Helper that generates the ulsch_configuration object necessary to compute the Effective Code Rate.
 static ulsch_configuration build_ulsch_info(const pusch_config_params& pusch_cfg,
                                             const bwp_config&          active_bwp_cfg,
@@ -223,6 +233,10 @@ std::optional<sch_mcs_tbs> srsran::compute_dl_mcs_tbs(const pdsch_config_params&
                                                       unsigned                   nof_prbs,
                                                       bool                       contains_dc)
 {
+  if (nof_prbs == 0) {
+    return std::nullopt;
+  }
+
   // The maximum supported code rate is 0.95, as per TS38.214, Section 5.1.3. The maximum code rate is defined for DL,
   // but we consider the same value for UL.
   static const double max_supported_code_rate = 0.95;
@@ -239,6 +253,10 @@ std::optional<sch_mcs_tbs> srsran::compute_dl_mcs_tbs(const pdsch_config_params&
                                                             .tb_scaling_field = pdsch_params.tb_scaling_field,
                                                             .n_prb            = nof_prbs});
 
+  if (tbs_bits == 0) {
+    return std::nullopt;
+  }
+
   // > Compute the effective code rate.
   dlsch_configuration dlsch_info{.tbs                = static_cast<units::bits>(tbs_bits),
                                  .mcs_descr          = mcs_info,
@@ -252,7 +270,11 @@ std::optional<sch_mcs_tbs> srsran::compute_dl_mcs_tbs(const pdsch_config_params&
                                  .nof_layers  = pdsch_params.nof_layers,
                                  .contains_dc = contains_dc};
 
-  float effective_code_rate = get_dlsch_information(dlsch_info).get_effective_code_rate();
+  auto effective_code_rate_opt = try_get_dl_effective_code_rate(dlsch_info);
+  if (not effective_code_rate_opt.has_value()) {
+    return std::nullopt;
+  }
+  float effective_code_rate = effective_code_rate_opt.value();
 
   // > Decrease the MCS and recompute TBS until the effective code rate is not above the 0.95 threshold.
   sch_mcs_index mcs = max_mcs;
@@ -270,11 +292,23 @@ std::optional<sch_mcs_tbs> srsran::compute_dl_mcs_tbs(const pdsch_config_params&
     dlsch_info.tbs         = static_cast<units::bits>(tbs_bits);
     dlsch_info.mcs_descr   = mcs_info;
     dlsch_info.contains_dc = contains_dc;
-    effective_code_rate    = get_dlsch_information(dlsch_info).get_effective_code_rate();
+    if (tbs_bits == 0) {
+      break;
+    }
+    effective_code_rate_opt = try_get_dl_effective_code_rate(dlsch_info);
+    if (not effective_code_rate_opt.has_value()) {
+      tbs_bits = 0;
+      break;
+    }
+    effective_code_rate = effective_code_rate_opt.value();
   }
 
   // If no MCS such that effective code rate <= 0.95, return an empty optional object.
   if (effective_code_rate > max_supported_code_rate and mcs == 0) {
+    return std::nullopt;
+  }
+
+  if (tbs_bits == 0) {
     return std::nullopt;
   }
 
@@ -410,3 +444,5 @@ unsigned srsran::compute_ul_tbs_unsafe(const pusch_config_params& pusch_cfg, sch
                                                                .n_prb            = nof_prbs}) /
          NOF_BITS_PER_BYTE;
 }
+
+

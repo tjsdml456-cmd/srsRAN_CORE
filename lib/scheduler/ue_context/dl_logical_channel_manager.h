@@ -24,7 +24,9 @@
 
 #include "../config/logical_channel_list_config.h"
 #include "../slicing/ran_slice_id.h"
+#include "dl_mac_shaped_thp_tracker.h"
 #include "srsran/adt/intrusive_list.h"
+#include "srsran/ran/du_types.h"
 #include "srsran/adt/ring_buffer.h"
 #include "srsran/mac/mac_pdu_format.h"
 #include "srsran/ran/logical_channel/lcid_dl_sch.h"
@@ -47,6 +49,7 @@ public:
   };
 
   dl_logical_channel_manager(subcarrier_spacing              scs_common,
+                             du_ue_index_t                   ue_index,
                              bool                            starts_in_fallback,
                              logical_channel_config_list_ptr log_channels_configs);
 
@@ -261,6 +264,11 @@ private:
 
   // List of pending CEs except UE Contention Resolution Identity.
   ring_buffer<mac_ce_info> pending_ces;
+
+  const du_ue_index_t ue_index;
+
+  /// Per-UE shaped MAC SDU payload throughput (post token bucket).
+  dl_mac_shaped_thp_tracker shaped_thp_tracker;
 };
 
 /// \brief Allocate MAC SDUs and corresponding MAC subPDU subheaders.
@@ -309,4 +317,5 @@ unsigned build_dl_transport_block_info(dl_msg_tb_info&             tb_info,
                                        ran_slice_id_t              slice_id);
 
 } // namespace srsran
+
 

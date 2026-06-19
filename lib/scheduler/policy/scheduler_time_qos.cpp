@@ -40,8 +40,8 @@ static constexpr unsigned MAX_PF_COEFF = 10;
 // [Implementation-defined] Maximum number of slots skipped between scheduling opportunities.
 static constexpr unsigned MAX_SLOT_SKIPPED = 20;
 
-// GBR/DC-GBR use TBS air cap; 10M non-GBR uses MAC token path only (matches dl_logical_channel_manager).
-static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 14'000'000;
+// 5M DC-GBR / 7M GBR use TBS-level air cap; non-GBR uses MAC token path only.
+static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 5'000'000;
 
 // Averaging window for GBR rate weights / LC bit-rate tracking (matches priority-4 + dl_logical_channel_manager).
 static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
@@ -113,6 +113,24 @@ void scheduler_time_qos::save_ul_newtx_grants(span<const ul_sched_info> ul_grant
 // [Implementation-defined] Helper value to set a maximum metric weight that is low enough to avoid overflows during
 // the final QoS weight computation.
 static constexpr double max_metric_weight = 1.0e12;
+
+/// Tracking weight: boost below GBR, neutral between GBR and MBR, penalty above MBR.
+static double compute_tracking_rate_weight(double gbr_bps, double mbr_bps, double avg_rate)
+{
+  static constexpr double GBR_UNDER_TARGET_BOOST  = 2.0;
+  static constexpr double MBR_OVER_TARGET_PENALTY = 0.35;
+
+  if (avg_rate <= 0) {
+    return max_metric_weight;
+  }
+  if (avg_rate < gbr_bps) {
+    return std::max(GBR_UNDER_TARGET_BOOST, std::min(gbr_bps / avg_rate, max_metric_weight));
+  }
+  if (avg_rate >= mbr_bps) {
+    return MBR_OVER_TARGET_PENALTY;
+  }
+  return 1.0;
+}
 
 static double compute_pf_metric(double estim_rate, double avg_rate, double fairness_coeff)
 {
@@ -217,28 +235,29 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
         continue;
       }
 
-      // GBR flow.
+      // GBR / DC-GBR flow.
       double dl_avg_rate = u.dl_avg_bit_rate(lc->lcid);
       if (dl_avg_rate != 0) {
-        // NOTE: dl_avg_rate is based on scheduled bytes, not actually transmitted bytes.
-        // This means avg_rate can be higher than actual transmission rate due to:
-        // - HARQ retransmissions (scheduled but not successfully transmitted)
-        // - Channel conditions (scheduled but failed transmission)
-        // Therefore, gbr_weight calculation may underestimate GBR guarantee needs.
-        double calculated_gbr_weight = lc->qos->gbr_qos_info->gbr_dl / dl_avg_rate;
-        
-        // Apply correction: if avg_rate > GBR_DL, it means scheduled rate is higher than GBR,
-        // but actual transmission rate might be lower. We need to ensure GBR guarantee.
-        // If calculated_gbr_weight < 1.0, it means avg_rate > GBR_DL, which suggests
-        // we might need to prioritize GBR guarantee even if scheduled rate is high.
-        // However, we should still use the calculated weight as-is, since the scheduler
-        // should allocate resources based on scheduled bytes, not actual transmitted bytes.
-        gbr_weight += std::min(calculated_gbr_weight, max_metric_weight);
-        
-        // Debug log for GBR weight calculation
-        logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, avg_rate={} bps, calculated_gbr_weight={:.6f}, "
-                    "final_gbr_weight={:.6f}",
-                    fmt::underlying(lc->lcid), lc->qos->gbr_qos_info->gbr_dl, dl_avg_rate, calculated_gbr_weight, gbr_weight);
+        const double gbr_bps = static_cast<double>(lc->qos->gbr_qos_info->gbr_dl);
+        const double mbr_bps = static_cast<double>(lc->qos->gbr_qos_info->max_br_dl > 0
+                                                       ? lc->qos->gbr_qos_info->max_br_dl
+                                                       : lc->qos->gbr_qos_info->gbr_dl);
+        // Air TBS cap enforces GFBR/MBR on the wire. When avg meets target, skip MBR penalty (0.35x) that
+        // would starve the UE and let the RLC queue diverge under overload input (e.g. iperf 10M vs 7M cap).
+        if (u.dl_air_rate_cap_enabled() and dl_avg_rate >= gbr_bps) {
+          gbr_weight += 1.0;
+        } else {
+          gbr_weight += compute_tracking_rate_weight(gbr_bps, mbr_bps, dl_avg_rate);
+        }
+
+        logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, MBR_DL={} bps, avg_rate={} bps, air_cap={}, "
+                    "gbr_weight={:.6f}",
+                    fmt::underlying(lc->lcid),
+                    lc->qos->gbr_qos_info->gbr_dl,
+                    static_cast<uint64_t>(mbr_bps),
+                    dl_avg_rate,
+                    u.dl_air_rate_cap_enabled(),
+                    gbr_weight);
       } else {
         gbr_weight += max_metric_weight;
       }
@@ -568,5 +587,6 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
+
 
 

@@ -79,7 +79,8 @@ inline void stamp_rlc_sdu_pdb_ms(rlc_sdu& sdu, du_ue_index_t ue_index, rb_id_t r
   }
 }
 
-inline constexpr bool RLC_PDB_AQM_ENABLED = true;
+// Scheduling-only experiment: disable PDB AQM drops (no forced packet loss).
+inline constexpr bool RLC_PDB_AQM_ENABLED = false;
 
 inline constexpr double RLC_PDB_AQM_DROP_FRACTION = 1.0;
 
@@ -114,4 +115,5 @@ inline bool rlc_sdu_pdb_expired(const rlc_sdu& sdu, du_ue_index_t ue_index, rb_i
 }
 
 } // namespace srsran
+
 
