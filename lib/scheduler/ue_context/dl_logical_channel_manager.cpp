@@ -89,7 +89,7 @@ static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
 // Max burst stored in the token bucket (seconds of MBR). Smaller = flatter throughput near GBR.
 static constexpr double TOKEN_BUCKET_BURST_SEC = 0.005;
 
-// Defer DL scheduling only when token cannot fund a minimal MAC SDU (priority gate, not rate cap).
+// Defer DL scheduling only when token cannot fun d a minimal MAC SDU (priority gate, not rate cap).
 static constexpr unsigned MIN_TOKEN_TO_SCHED = 500;
 
 static unsigned get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)

@@ -46,8 +46,30 @@ static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 5'000'000;
 // Averaging window for GBR rate weights / LC bit-rate tracking (matches priority-4 + dl_logical_channel_manager).
 static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
 
+namespace {
+
+time_qos_scheduler_config make_gbr_prioritized_qos_policy(const scheduler_ue_expert_config& expert_cfg_)
+{
+  time_qos_scheduler_config cfg = std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg);
+  cfg.combine_function          = time_qos_scheduler_config::combine_function_type::gbr_prioritized;
+  return cfg;
+}
+
+double apply_gbr_prioritized_pf_floor(double                           pf_weight,
+                                      double                           gbr_weight,
+                                      const time_qos_scheduler_config& policy_params)
+{
+  if (policy_params.combine_function == time_qos_scheduler_config::combine_function_type::gbr_prioritized and
+      gbr_weight > 1.0) {
+    return std::max(1.0, pf_weight);
+  }
+  return pf_weight;
+}
+
+} // namespace
+
 scheduler_time_qos::scheduler_time_qos(const scheduler_ue_expert_config& expert_cfg_, du_cell_index_t cell_index_) :
-  params(std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg)), cell_index(cell_index_)
+  params(make_gbr_prioritized_qos_policy(expert_cfg_)), cell_index(cell_index_)
 {
 }
 
@@ -114,24 +136,6 @@ void scheduler_time_qos::save_ul_newtx_grants(span<const ul_sched_info> ul_grant
 // the final QoS weight computation.
 static constexpr double max_metric_weight = 1.0e12;
 
-/// Tracking weight: boost below GBR, neutral between GBR and MBR, penalty above MBR.
-static double compute_tracking_rate_weight(double gbr_bps, double mbr_bps, double avg_rate)
-{
-  static constexpr double GBR_UNDER_TARGET_BOOST  = 2.0;
-  static constexpr double MBR_OVER_TARGET_PENALTY = 0.35;
-
-  if (avg_rate <= 0) {
-    return max_metric_weight;
-  }
-  if (avg_rate < gbr_bps) {
-    return std::max(GBR_UNDER_TARGET_BOOST, std::min(gbr_bps / avg_rate, max_metric_weight));
-  }
-  if (avg_rate >= mbr_bps) {
-    return MBR_OVER_TARGET_PENALTY;
-  }
-  return 1.0;
-}
-
 static double compute_pf_metric(double estim_rate, double avg_rate, double fairness_coeff)
 {
   double pf_weight = 0.0;
@@ -159,11 +163,7 @@ static double combine_qos_metrics(double                           pf_weight,
                                   double                           delay_weight,
                                   const time_qos_scheduler_config& policy_params)
 {
-  if (policy_params.combine_function == time_qos_scheduler_config::combine_function_type::gbr_prioritized and
-      gbr_weight > 1.0) {
-    // GBR target has not been met and we prioritize GBR over PF.
-    pf_weight = std::max(1.0, pf_weight);
-  }
+  pf_weight = apply_gbr_prioritized_pf_floor(pf_weight, gbr_weight, policy_params);
 
   // Log QoS metrics for debugging
   static auto& logger = srslog::fetch_basic_logger("SCHED", false);
@@ -235,28 +235,16 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
         continue;
       }
 
-      // GBR / DC-GBR flow.
+      // GBR / DC-GBR flow: boost when avg < GBR; floor at 1.0 when avg >= GBR (never below non-GBR).
       double dl_avg_rate = u.dl_avg_bit_rate(lc->lcid);
       if (dl_avg_rate != 0) {
         const double gbr_bps = static_cast<double>(lc->qos->gbr_qos_info->gbr_dl);
-        const double mbr_bps = static_cast<double>(lc->qos->gbr_qos_info->max_br_dl > 0
-                                                       ? lc->qos->gbr_qos_info->max_br_dl
-                                                       : lc->qos->gbr_qos_info->gbr_dl);
-        // Air TBS cap enforces GFBR/MBR on the wire. When avg meets target, skip MBR penalty (0.35x) that
-        // would starve the UE and let the RLC queue diverge under overload input (e.g. iperf 10M vs 7M cap).
-        if (u.dl_air_rate_cap_enabled() and dl_avg_rate >= gbr_bps) {
-          gbr_weight += 1.0;
-        } else {
-          gbr_weight += compute_tracking_rate_weight(gbr_bps, mbr_bps, dl_avg_rate);
-        }
+        gbr_weight += std::max(1.0, std::min(gbr_bps / dl_avg_rate, max_metric_weight));
 
-        logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, MBR_DL={} bps, avg_rate={} bps, air_cap={}, "
-                    "gbr_weight={:.6f}",
+        logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, avg_rate={} bps, gbr_weight={:.6f}",
                     fmt::underlying(lc->lcid),
                     lc->qos->gbr_qos_info->gbr_dl,
-                    static_cast<uint64_t>(mbr_bps),
                     dl_avg_rate,
-                    u.dl_air_rate_cap_enabled(),
                     gbr_weight);
       } else {
         gbr_weight += max_metric_weight;
@@ -278,14 +266,16 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
               (policy_params.pdb_enabled and delay_weight_before != 0) ? "calculated" :
               (not policy_params.pdb_enabled) ? "pdb_disabled" : "delay_weight_was_zero");
 
-  double pf_weight = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
+  const double pf_weight_raw = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
+  const double pf_weight     = apply_gbr_prioritized_pf_floor(pf_weight_raw, gbr_weight, policy_params);
   // If priority is disabled, set the priority weight of all UEs to 1.0.
   double prio_weight = policy_params.priority_enabled ? (max_combined_prio_level + 1 - min_combined_prio) /
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
 
-  // Log DL priority calculation every evaluation.
-  logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, delay_weight={:.3f}",
+  // Log DL priority calculation every evaluation (pf_weight is post gbr_prioritized floor).
+  logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, "
+              "delay_weight={:.3f}",
               u.ue_index(),
               min_combined_prio,
               prio_weight,
@@ -294,7 +284,7 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
               delay_weight);
 
   // The return is a combination of ARP and QoS priorities, GBR and PF weight functions.
-  return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, delay_weight, policy_params);
+  return combine_qos_metrics(pf_weight_raw, gbr_weight, prio_weight, delay_weight, policy_params);
 }
 
 /// \brief Computes UL weights used in computation of UL priority value for a UE in a slot.
