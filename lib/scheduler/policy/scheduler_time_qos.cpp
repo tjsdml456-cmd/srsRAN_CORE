@@ -387,19 +387,28 @@ void scheduler_time_qos::ue_ctxt::apply_core_qos_token_bucket_rates(const slice_
     uint64_t gbr_bps = 0;
     uint64_t mbr_bps = 0;
     bool     enforce_token_bucket = false;
-    if (lc->qos->gbr_qos_info.has_value()) {
-      const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
-      if (qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
-                                    qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr)) {
-        enforce_token_bucket = true;
-        gbr_bps              = lc->qos->gbr_qos_info->gbr_dl;
-        mbr_bps              = lc->qos->gbr_qos_info->max_br_dl;
-        if (mbr_bps == 0) {
-          mbr_bps = gbr_bps;
-        }
-        qos_signature ^= gbr_bps ^ (mbr_bps << 1);
-      }
+    const auto* qos_chars         = get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
+    const bool  is_gbr_5qi =
+        qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
+                                  qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
+
+    if (not is_gbr_5qi) {
+      u.set_dl_token_rates(lc->lcid, 0, 0, false);
+      continue;
     }
+
+    if (not lc->qos->gbr_qos_info.has_value()) {
+      // PCF/NGAP reconfig in flight — retain current air cap instead of opening to line rate.
+      continue;
+    }
+
+    enforce_token_bucket = true;
+    gbr_bps              = lc->qos->gbr_qos_info->gbr_dl;
+    mbr_bps              = lc->qos->gbr_qos_info->max_br_dl;
+    if (mbr_bps == 0) {
+      mbr_bps = gbr_bps;
+    }
+    qos_signature ^= gbr_bps ^ (mbr_bps << 1);
 
     const bool air_cap = enforce_token_bucket and gbr_bps >= DL_AIR_TBS_CAP_MIN_GBR_BPS;
     u.set_dl_token_rates(lc->lcid, gbr_bps, mbr_bps, air_cap);
