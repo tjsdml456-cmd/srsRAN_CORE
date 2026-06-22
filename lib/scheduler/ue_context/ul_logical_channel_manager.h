@@ -27,6 +27,7 @@
 #include "srsran/adt/intrusive_list.h"
 #include "srsran/mac/mac_pdu_format.h"
 #include "srsran/scheduler/scheduler_feedback_handler.h"
+#include "srsran/ran/slot_point.h"
 #include "srsran/support/math/moving_averager.h"
 
 namespace srsran {
@@ -97,6 +98,9 @@ public:
   /// \brief Checks whether a SR indication handling is pending.
   bool has_pending_sr() const { return sr_pending.load(std::memory_order_relaxed); }
 
+  /// Slot at which the SR was received or invalid slot if no SR is pending.
+  slot_point pending_sr_slot_rx() const { return oldest_sr_sl_rx; }
+
   /// \brief Update UL BSR for a given LCG-ID.
   void handle_bsr_indication(const ul_bsr_indication_message& msg)
   {
@@ -118,17 +122,23 @@ public:
   }
 
   /// \brief Indicate that the UE requested an UL grant.
-  void handle_sr_indication()
+  void handle_sr_indication(slot_point uci_slot = {})
   {
     if (not is_active()) {
       // Ignore SR indication if the UL has been deactivated.
       return;
     }
     sr_pending.store(true, std::memory_order::memory_order_relaxed);
-    // TODO: handle SR indication content.
+    if (not oldest_sr_sl_rx.valid()) {
+      oldest_sr_sl_rx = uci_slot;
+    }
   }
 
-  void reset_sr_indication() { sr_pending.store(false, std::memory_order::memory_order_relaxed); }
+  void reset_sr_indication()
+  {
+    sr_pending.store(false, std::memory_order::memory_order_relaxed);
+    oldest_sr_sl_rx = {};
+  }
 
   /// \brief Average bit rate, in bps, for a given LCG-Id.
   double average_bit_rate(lcg_id_t lcg_id) const
@@ -187,6 +197,8 @@ private:
   // can be received from different cells (in different threads).
   std::atomic<bool> sr_pending{false};
 
+  slot_point oldest_sr_sl_rx;
+
   std::array<channel_group_context, MAX_NOF_LCGS> groups;
 
   // Mapping of RAN slice ID to the list of associated LCG-IDs.
@@ -194,4 +206,5 @@ private:
 };
 
 } // namespace srsran
+
 

@@ -27,7 +27,6 @@
 #include "srsran/ran/logical_channel/lcid.h"
 #include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/ran/rb_id.h"
-#include "srsran/rlc/rlc_runtime_pdb_cache.h"
 #include "srsran/srslog/srslog.h"
 #include <algorithm>
 
@@ -40,20 +39,10 @@ static constexpr unsigned MAX_PF_COEFF = 10;
 // [Implementation-defined] Maximum number of slots skipped between scheduling opportunities.
 static constexpr unsigned MAX_SLOT_SKIPPED = 20;
 
-// 5M DC-GBR / 7M GBR use TBS-level air cap; non-GBR uses MAC token path only.
+// 5M DC-GBR / 7M GBR use TBS-level air cap (matches dl_logical_channel_manager).
 static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 5'000'000;
 
-// Averaging window for GBR rate weights / LC bit-rate tracking (matches priority-4 + dl_logical_channel_manager).
-static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
-
 namespace {
-
-time_qos_scheduler_config make_gbr_prioritized_qos_policy(const scheduler_ue_expert_config& expert_cfg_)
-{
-  time_qos_scheduler_config cfg = std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg);
-  cfg.combine_function          = time_qos_scheduler_config::combine_function_type::gbr_prioritized;
-  return cfg;
-}
 
 double apply_gbr_prioritized_pf_floor(double                           pf_weight,
                                       double                           gbr_weight,
@@ -69,7 +58,7 @@ double apply_gbr_prioritized_pf_floor(double                           pf_weight
 } // namespace
 
 scheduler_time_qos::scheduler_time_qos(const scheduler_ue_expert_config& expert_cfg_, du_cell_index_t cell_index_) :
-  params(make_gbr_prioritized_qos_policy(expert_cfg_)), cell_index(cell_index_)
+  params(std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg)), cell_index(cell_index_)
 {
 }
 
@@ -235,11 +224,11 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
         continue;
       }
 
-      // GBR / DC-GBR flow: boost when avg < GBR; floor at 1.0 when avg >= GBR (never below non-GBR).
+      // GBR / DC-GBR: unfloored gbr/avg ratio (ocudu). avg > GBR => weight < 1.0.
       double dl_avg_rate = u.dl_avg_bit_rate(lc->lcid);
       if (dl_avg_rate != 0) {
         const double gbr_bps = static_cast<double>(lc->qos->gbr_qos_info->gbr_dl);
-        gbr_weight += std::max(1.0, std::min(gbr_bps / dl_avg_rate, max_metric_weight));
+        gbr_weight += std::min(gbr_bps / dl_avg_rate, max_metric_weight);
 
         logger.info("GBR weight calculation: LCID={}, GBR_DL={} bps, avg_rate={} bps, gbr_weight={:.6f}",
                     fmt::underlying(lc->lcid),
@@ -291,11 +280,19 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
 static double compute_ul_qos_weights(const slice_ue&                  u,
                                      double                           estim_ul_rate,
                                      double                           avg_ul_rate,
-                                     const time_qos_scheduler_config& policy_params)
+                                     const time_qos_scheduler_config& policy_params,
+                                     slot_point                       pusch_slot)
 {
-  if (u.has_pending_sr() or avg_ul_rate == 0) {
-    // Highest priority to SRs and UEs that have not yet received any allocation.
+  if (avg_ul_rate == 0) {
+    // Highest priority to UEs that have not yet received any allocation.
     return max_sched_priority;
+  }
+
+  if (u.has_pending_sr()) {
+    // High priority given to UEs that have pending SRs, prioritizing those with the oldest SRs.
+    static constexpr double slot_prio_coeff = max_sched_priority * 1e-6;
+    const auto              slot_diff       = pusch_slot - u.pending_sr_slot_rx();
+    return max_sched_priority - (pusch_slot.nof_slots_per_hyper_system_frame() - slot_diff) * slot_prio_coeff;
   }
 
   static constexpr uint16_t max_combined_prio_level = qos_prio_level_t::max() * arp_prio_level_t::max();
@@ -324,7 +321,7 @@ static double compute_ul_qos_weights(const slice_ue&                  u,
       lcg_id_t lcg_id  = u.get_lcg_id(lc->lcid);
       double   ul_rate = u.ul_avg_bit_rate(lcg_id);
       if (ul_rate != 0) {
-        gbr_weight += std::min(lc->qos->gbr_qos_info->gbr_ul / ul_rate, max_metric_weight);
+        gbr_weight += std::min(static_cast<double>(lc->qos->gbr_qos_info->gbr_ul) / ul_rate, max_metric_weight);
       } else {
         gbr_weight = max_metric_weight;
       }
@@ -375,49 +372,27 @@ void scheduler_time_qos::ue_ctxt::apply_core_qos_token_bucket_rates(const slice_
     }
     if (lc->qos->five_qi != five_qi_t::invalid) {
       qos_signature ^= (static_cast<uint64_t>(five_qi_to_uint(lc->qos->five_qi)) << 32);
-
-      if (const standardized_qos_characteristics* qos_chars =
-              get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
-          qos_chars != nullptr and not is_srb(lc->lcid)) {
-        const drb_id_t drb_id = uint_to_drb_id(static_cast<uint8_t>(static_cast<unsigned>(lc->lcid) - LCID_MIN_DRB + 1));
-        cache_rlc_bearer_runtime_pdb_ms(u.ue_index(), rb_id_t{drb_id}, qos_chars->packet_delay_budget_ms);
-      }
     }
 
     uint64_t gbr_bps = 0;
     uint64_t mbr_bps = 0;
     bool     enforce_token_bucket = false;
-    const auto* qos_chars         = get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
-    const bool  is_gbr_5qi =
-        qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
-                                  qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
-
-    if (not is_gbr_5qi) {
-      u.set_dl_token_rates(lc->lcid, 0, 0, false);
-      continue;
+    if (lc->qos->gbr_qos_info.has_value()) {
+      const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(lc->qos->five_qi);
+      if (qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
+                                    qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr)) {
+        enforce_token_bucket = true;
+        gbr_bps              = lc->qos->gbr_qos_info->gbr_dl;
+        mbr_bps              = lc->qos->gbr_qos_info->max_br_dl;
+        if (mbr_bps == 0) {
+          mbr_bps = gbr_bps;
+        }
+        qos_signature ^= gbr_bps ^ (mbr_bps << 1);
+      }
     }
-
-    if (not lc->qos->gbr_qos_info.has_value()) {
-      // PCF/NGAP reconfig in flight — retain current air cap instead of opening to line rate.
-      continue;
-    }
-
-    enforce_token_bucket = true;
-    gbr_bps              = lc->qos->gbr_qos_info->gbr_dl;
-    mbr_bps              = lc->qos->gbr_qos_info->max_br_dl;
-    if (mbr_bps == 0) {
-      mbr_bps = gbr_bps;
-    }
-    qos_signature ^= gbr_bps ^ (mbr_bps << 1);
 
     const bool air_cap = enforce_token_bucket and gbr_bps >= DL_AIR_TBS_CAP_MIN_GBR_BPS;
     u.set_dl_token_rates(lc->lcid, gbr_bps, mbr_bps, air_cap);
-
-    // Match priority-4: 300 ms averaging window for rate tracking (overrides 5QI table e.g. 2000 ms).
-    if (enforce_token_bucket) {
-      lc->qos->qos.average_window_ms = QOS_RATE_AVG_WINDOW_MS;
-      u.apply_dl_lc_rate_avg_window(lc->lcid);
-    }
   }
 
   if (last_core_qos_signature.has_value() and qos_signature != last_core_qos_signature.value()) {
@@ -446,6 +421,7 @@ void scheduler_time_qos::ue_ctxt::compute_dl_prio(const slice_ue& u,
   // Process previous slot allocated bytes and compute average.
   compute_dl_avg_rate(u, nof_slots_elapsed);
 
+  // Defer DL scheduling when the GBR token bucket cannot fund the next MAC grant (no PDSCH grant this slot).
   if (u.dl_token_throttled()) {
     static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
     logger.info("[TOKEN-THROTTLE] UE{} defer DL scheduling (token exhausted)", u.ue_index());
@@ -543,7 +519,7 @@ void scheduler_time_qos::ue_ctxt::compute_ul_prio(const slice_ue& u,
   const double current_avg_rate = total_ul_avg_rate();
 
   // Compute LC weight function.
-  ul_prio = compute_ul_qos_weights(u, estimated_rate, current_avg_rate, parent->params);
+  ul_prio = compute_ul_qos_weights(u, estimated_rate, current_avg_rate, parent->params, pusch_slot);
 }
 
 void scheduler_time_qos::ue_ctxt::compute_dl_avg_rate(const slice_ue& u, unsigned nof_slots_elapsed)
@@ -586,6 +562,7 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
+
 
 
 

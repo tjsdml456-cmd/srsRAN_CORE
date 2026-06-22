@@ -69,9 +69,6 @@ struct rlc_sdu {
   /// This represents the time where the SDU is put into the SDU queue.
   std::chrono::time_point<std::chrono::steady_clock> time_of_arrival;
 
-  /// \brief PDB (ms) stamped at enqueue from core 5QI (used for AQM drop).
-  std::optional<unsigned> pdb_ms;
-
   rlc_sdu() = default;
   rlc_sdu(byte_buffer buf_, std::optional<uint32_t> pdcp_sn_) : buf(std::move(buf_)), pdcp_sn(pdcp_sn_) {}
 };
@@ -203,4 +200,5 @@ public:
   virtual void on_buffer_state_update(const rlc_buffer_state& bsr) = 0;
 };
 } // namespace srsran
+
 

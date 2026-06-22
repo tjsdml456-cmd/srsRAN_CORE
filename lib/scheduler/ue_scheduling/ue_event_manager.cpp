@@ -584,7 +584,7 @@ void ue_cell_event_manager::handle_uci_indication(const uci_indication& ind)
         // Process SRs.
         if (pucch_f0f1->sr_detected) {
           // Handle SR indication.
-          u.handle_sr_indication();
+          u.handle_sr_indication(uci_sl);
 
           if (ue_cc->is_in_fallback_mode()) {
             fallback_sched.handle_sr_indication(ue_cc->ue_index);
@@ -628,7 +628,7 @@ void ue_cell_event_manager::handle_uci_indication(const uci_indication& ind)
         const size_t sr_bit_position_with_1_sr_bit = 0;
         if (not pucch_f2f3f4->sr_info.empty() and pucch_f2f3f4->sr_info.test(sr_bit_position_with_1_sr_bit)) {
           // Handle SR indication.
-          u.handle_sr_indication();
+          u.handle_sr_indication(uci_sl);
 
           // Log SR event.
           ev_logger.enqueue(scheduler_event_logger::sr_event{ue_cc->ue_index, ue_cc->rnti()});
@@ -1073,3 +1073,4 @@ bool ue_event_manager::cell_exists(du_cell_index_t cell_index) const
 {
   return cell_index < MAX_NOF_DU_CELLS and cells[cell_index] != nullptr;
 }
+

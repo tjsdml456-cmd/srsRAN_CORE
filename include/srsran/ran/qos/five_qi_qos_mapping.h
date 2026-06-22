@@ -70,4 +70,22 @@ struct standardized_qos_characteristics {
 /// 5QI is not present in the table.
 const standardized_qos_characteristics* get_5qi_to_qos_characteristics_mapping(five_qi_t five_qi);
 
+/// \brief Returns the GFBR/MFBR averaging window for the given 5QI from TS 23.501 table 5.7.4-1, if defined.
+inline std::optional<unsigned> get_5qi_average_window_ms(five_qi_t five_qi)
+{
+  const standardized_qos_characteristics* qos_chars = get_5qi_to_qos_characteristics_mapping(five_qi);
+  return qos_chars != nullptr ? qos_chars->average_window_ms : std::nullopt;
+}
+
+/// \brief Returns averaging window from bearer QoS config (ocudu: table copied into qos at setup), with 5QI fallback.
+inline std::optional<unsigned> get_configured_qos_average_window_ms(const standardized_qos_characteristics& qos,
+                                                                    five_qi_t five_qi)
+{
+  if (qos.average_window_ms.has_value()) {
+    return qos.average_window_ms;
+  }
+  return get_5qi_average_window_ms(five_qi);
+}
+
 } // namespace srsran
+

@@ -52,9 +52,6 @@ struct rlc_tx_am_sdu_info {
   /// This represents the time where the SDU is put into the SDU queue.
   std::chrono::time_point<std::chrono::steady_clock> time_of_arrival;
 
-  /// \brief PDB (ms) stamped at enqueue from core 5QI.
-  std::optional<unsigned> pdb_ms;
-
   /// \brief Time of departure from RLC towards lower layers.
   ///
   /// This represents the time where the SDU is pulled from SDU queue, put into the TX window, and the PDU (or the first
@@ -149,8 +146,6 @@ private:
 
   const du_ue_index_t  du_ue_index;
   pcap_rlc_pdu_context pcap_context;
-
-  unsigned pdb_aqm_drop_total = 0;
 
   // Storage for previous buffer state
   rlc_buffer_state prev_buffer_state = {};
@@ -370,9 +365,6 @@ private:
   /// \param sn The SN of the PDU to check
   void check_sn_reached_max_retx(uint32_t sn);
 
-  /// \brief Drop SDUs whose HOL sojourn exceeds the current runtime PDB (queue only).
-  unsigned drop_pdb_expired_am_backlog();
-
   /// Called whenever the buffer state has been changed by upper layers (i.e new SDU or SDU discard) or the size of the
   /// own status PDU has changed so that lower layers need to be informed about the new buffer state. This function
   /// defers the actual notification \c handle_changed_buffer_state to pcell_executor. The notification is discarded if
@@ -427,4 +419,5 @@ struct formatter<srsran::rlc_tx_am_state> {
 };
 
 } // namespace fmt
+
 

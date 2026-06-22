@@ -148,26 +148,19 @@ sched_ue_config_request create_scheduler_ue_config_request(const du_ue_context& 
     sched_lc_ch.sr_id.emplace(drb.mac_cfg.sr_id);
     sched_lc_ch.rrm_policy.s_nssai = drb.s_nssai;
     sched_lc_ch.rrm_policy.plmn_id = ue_ctx.nr_cgi.plmn_id;
-    sched_lc_ch.qos.emplace();
 
-    five_qi_t five_qi           = drb.qos.qos_desc.get_5qi();
-    sched_lc_ch.qos->five_qi      = five_qi;
-    sched_lc_ch.qos->qos          = *get_5qi_to_qos_characteristics_mapping(five_qi);
-    sched_lc_ch.qos->arp_priority = drb.qos.alloc_retention_prio.prio_level_arp;
-
-    const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(five_qi);
-    const bool  is_gbr_5qi =
-        qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
-                                  qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
-    if (is_gbr_5qi and drb.qos.gbr_qos_info.has_value()) {
-      sched_lc_ch.qos->gbr_qos_info            = drb.qos.gbr_qos_info;
-      sched_lc_ch.qos->qos.average_window_ms = 300;
-    } else {
-      sched_lc_ch.qos->gbr_qos_info.reset();
+    five_qi_t   five_qi = drb.qos.qos_desc.get_5qi();
+    const auto* mapping = get_5qi_to_qos_characteristics_mapping(five_qi);
+    if (mapping != nullptr) {
+      sched_lc_ch.qos.emplace();
+      sched_lc_ch.qos->five_qi      = five_qi;
+      sched_lc_ch.qos->qos          = *mapping;
+      sched_lc_ch.qos->arp_priority = drb.qos.alloc_retention_prio.prio_level_arp;
+      sched_lc_ch.qos->gbr_qos_info = drb.qos.gbr_qos_info;
     }
 
     // Log logical channel QoS configuration (5QI and GBR values)
-    if (sched_lc_ch.qos->gbr_qos_info.has_value()) {
+    if (sched_lc_ch.qos.has_value() and sched_lc_ch.qos->gbr_qos_info.has_value()) {
       logger.info("[SCHED-LC] Logical Channel QoS Config: ue={}, DRB={}, LCID={}, 5QI={}, "
                   "GBR_DL={} bps ({:.2f} Mbps), GBR_UL={} bps ({:.2f} Mbps), "
                   "MBR_DL={} bps ({:.2f} Mbps), MBR_UL={} bps ({:.2f} Mbps)",
@@ -199,5 +192,6 @@ sched_ue_config_request create_scheduler_ue_config_request(const du_ue_context& 
 
 } // namespace srs_du
 } // namespace srsran
+
 
 

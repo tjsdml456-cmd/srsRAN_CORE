@@ -21,21 +21,19 @@
  */
 
 #include "ul_logical_channel_manager.h"
+#include "srsran/ran/qos/five_qi_qos_mapping.h"
 
 using namespace srsran;
 
 // Initial capacity for the slice_lcid_list_lookup vector.
 static constexpr unsigned INITIAL_SLICE_CAPACITY = 4;
 
-// Matches dl_logical_channel_manager / priority-4 scheduler_time_qos.
-static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
-
-static unsigned get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
+static std::optional<unsigned> get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
 {
-  if (qos.qos.average_window_ms.has_value()) {
-    return qos.qos.average_window_ms.value();
+  if (not qos.gbr_qos_info.has_value()) {
+    return std::nullopt;
   }
-  return QOS_RATE_AVG_WINDOW_MS;
+  return get_configured_qos_average_window_ms(qos.qos, qos.five_qi);
 }
 
 ul_logical_channel_manager::ul_logical_channel_manager(subcarrier_spacing              scs,
@@ -141,11 +139,11 @@ void ul_logical_channel_manager::configure(logical_channel_config_list_ptr lc_ch
   }
   for (logical_channel_config_ptr lc_ch : *lc_channels_configs) {
     groups[lc_ch->lc_group].active = true;
-    if (lc_ch->qos.has_value() and lc_ch->qos.value().gbr_qos_info.has_value()) {
-      // Track average rate for GBR logical channel groups (default 300 ms if unset, e.g. 5QI 9 + PCF GBR).
-      const unsigned win_size_msec  = get_qos_rate_avg_window_msec(lc_ch->qos.value());
-      const unsigned win_size_slots = std::max(1U, win_size_msec * slots_per_sec / 1000);
-      groups[lc_ch->lc_group].avg_bytes_per_slot.resize(win_size_slots);
+    if (lc_ch->qos.has_value() and lc_ch->qos->gbr_qos_info.has_value()) {
+      if (const auto win_size_msec = get_qos_rate_avg_window_msec(lc_ch->qos.value())) {
+        const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
+        groups[lc_ch->lc_group].avg_bytes_per_slot.resize(win_size_slots);
+      }
     }
   }
   for (unsigned i = 0; i != groups.size(); ++i) {
@@ -214,4 +212,5 @@ bool ul_logical_channel_manager::consume_first_ul_grant_after_qos_change(lcg_id_
   groups[lcg_id].first_ul_grant_after_qos_change_pending = false;
   return pending;
 }
+
 

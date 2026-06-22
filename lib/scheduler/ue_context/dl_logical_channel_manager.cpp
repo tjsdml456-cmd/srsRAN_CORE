@@ -83,21 +83,18 @@ static constexpr unsigned MAX_CES_PER_UE = 5;
 // Size of the pending_ces queue.
 static constexpr unsigned MAX_PENDING_CES = MAX_NOF_DU_UES * MAX_CES_PER_UE;
 
-// [Implementation-defined] Averaging window for LC bit-rate tracking (GFBR/MFBR scheduling weights).
-static constexpr unsigned QOS_RATE_AVG_WINDOW_MS = 300;
-
 // Max burst stored in the token bucket (seconds of MBR). Smaller = flatter throughput near GBR.
 static constexpr double TOKEN_BUCKET_BURST_SEC = 0.005;
 
 // Defer DL scheduling only when token cannot fun d a minimal MAC SDU (priority gate, not rate cap).
 static constexpr unsigned MIN_TOKEN_TO_SCHED = 500;
 
-static unsigned get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
+static std::optional<unsigned> get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
 {
-  if (qos.qos.average_window_ms.has_value()) {
-    return qos.qos.average_window_ms.value();
+  if (not qos.gbr_qos_info.has_value()) {
+    return std::nullopt;
   }
-  return QOS_RATE_AVG_WINDOW_MS;
+  return get_configured_qos_average_window_ms(qos.qos, qos.five_qi);
 }
 
 dl_logical_channel_manager::dl_logical_channel_manager(subcarrier_spacing              scs_common_,
@@ -125,16 +122,18 @@ void dl_logical_channel_manager::slot_indication()
   for (lcid_t lcid : sorted_channels) {
     if (not is_srb(lcid)) {
       auto& ch = channels[lcid];
+      sync_lc_token_rates_from_config(lcid);
       // Check if avg_bytes_per_slot needs to be initialized for GBR flows
       // This handles cases where runtime_qos.res_type changed to GBR after configure() was called
       if (channels[lcid].avg_bytes_per_slot.size() == 0 and channel_configs.has_value() and
           channel_configs->contains(lcid)) {
         logical_channel_config_ptr lc_cfg = (*channel_configs)[lcid];
-        if (lc_cfg->qos.has_value()) {
-          const unsigned win_size_msec  = get_qos_rate_avg_window_msec(lc_cfg->qos.value());
-          const unsigned win_size_slots = win_size_msec * slots_per_sec / 1000;
-          if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
-            channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
+        if (lc_cfg->qos.has_value() and lc_cfg->qos->gbr_qos_info.has_value()) {
+          if (const auto win_size_msec = get_qos_rate_avg_window_msec(lc_cfg->qos.value())) {
+            const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
+            if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
+              channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
+            }
           }
         }
       }
@@ -161,6 +160,11 @@ void dl_logical_channel_manager::slot_indication()
 
 void dl_logical_channel_manager::sync_lc_token_rates_from_config(lcid_t lcid)
 {
+  auto& ch = channels[lcid];
+  // Token rates set from core QoS (PCF/NGAP) own tb_gbr/mbr while air cap is active.
+  if (ch.air_rate_cap) {
+    return;
+  }
   if (not channel_configs.has_value() or not channel_configs->contains(lcid)) {
     return;
   }
@@ -172,30 +176,19 @@ void dl_logical_channel_manager::sync_lc_token_rates_from_config(lcid_t lcid)
   const bool  is_gbr_5qi =
       qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
                                 qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
-
-  auto& ch = channels[lcid];
-
-  // Only drop shaping when the configured 5QI is definitively non-GBR.
-  if (not is_gbr_5qi) {
+  if (not is_gbr_5qi or not lc_cfg->qos->gbr_qos_info.has_value()) {
     if (ch.tb_gbr_bps != 0 or ch.air_rate_cap) {
-      set_token_rates(lcid, 0, 0, false);
+      ch.tb_gbr_bps   = 0;
+      ch.tb_mbr_bps   = 0;
+      ch.token_bytes  = 0.0;
+      ch.air_rate_cap = false;
     }
     return;
   }
-
-  // GBR/DC-GBR 5QI but PCF/NGAP has not populated bitrates yet — keep current cap (do not open to full rate).
-  if (not lc_cfg->qos->gbr_qos_info.has_value()) {
-    return;
-  }
-
-  uint64_t gbr_bps = lc_cfg->qos->gbr_qos_info->gbr_dl;
-  uint64_t mbr_bps = lc_cfg->qos->gbr_qos_info->max_br_dl;
-  if (mbr_bps == 0) {
-    mbr_bps = gbr_bps;
-  }
-  const bool air_rate_cap = dl_air_tbs_cap_applies(gbr_bps);
-  if (ch.tb_gbr_bps != gbr_bps or ch.tb_mbr_bps != mbr_bps or ch.air_rate_cap != air_rate_cap) {
-    set_token_rates(lcid, gbr_bps, mbr_bps, air_rate_cap);
+  ch.tb_gbr_bps = lc_cfg->qos->gbr_qos_info->gbr_dl;
+  ch.tb_mbr_bps = lc_cfg->qos->gbr_qos_info->max_br_dl;
+  if (ch.tb_mbr_bps == 0) {
+    ch.tb_mbr_bps = ch.tb_gbr_bps;
   }
 }
 
@@ -237,9 +230,30 @@ void dl_logical_channel_manager::set_token_rates(lcid_t lcid, uint64_t gbr_bps, 
 
 bool dl_logical_channel_manager::is_token_throttled(ran_slice_id_t slice_id) const
 {
-  // Token gate disabled: deferring the whole UE on low token_bytes caused burst/idle
-  // throughput artifacts. GBR shaping uses per-grant TBS air cap when enabled.
-  (void)slice_id;
+  if (fallback_state or not has_slice(slice_id)) {
+    return false;
+  }
+
+  for (lcid_t lcid : sorted_channels) {
+    const auto& ch = channels[lcid];
+    if (not ch.active or ch.slice_id != slice_id or ch.tb_gbr_bps == 0 or ch.buf_st == 0) {
+      continue;
+    }
+
+    // Per-grant TBS air cap enforces the GBR/DC-GBR rate; token gate would starve every other slot.
+    if (ch.air_rate_cap) {
+      continue;
+    }
+
+    if (ch.token_bytes < static_cast<double>(MIN_TOKEN_TO_SCHED)) {
+      static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+      logger.info("[TOKEN-THROTTLE] LCID{} token={:.0f} min={} -> defer",
+                  static_cast<unsigned>(lcid),
+                  ch.token_bytes,
+                  MIN_TOKEN_TO_SCHED);
+      return true;
+    }
+  }
   return false;
 }
 
@@ -336,7 +350,7 @@ void dl_logical_channel_manager::debit_dl_grant_tokens(ran_slice_id_t slice_id, 
     if (not ch.active or not ch.air_rate_cap) {
       continue;
     }
-    // Air cap sizes each PDSCH TBS; debiting full TBS here double-limits below GBR.
+    // Air cap sizes each PDSCH TBS. Full-TBS debit overshoots slot refill (cap=2× slot) → throttle sawtooth.
     return;
   }
 }
@@ -347,13 +361,15 @@ void dl_logical_channel_manager::apply_lc_rate_avg_window(lcid_t lcid)
     return;
   }
   const logical_channel_config_ptr lc_cfg = (*channel_configs)[lcid];
-  if (not lc_cfg->qos.has_value()) {
+  if (not lc_cfg->qos.has_value() or not lc_cfg->qos->gbr_qos_info.has_value()) {
+    channels[lcid].avg_bytes_per_slot.resize(0);
     return;
   }
-  const unsigned win_size_msec  = get_qos_rate_avg_window_msec(lc_cfg->qos.value());
-  const unsigned win_size_slots = std::max(1U, win_size_msec * slots_per_sec / 1000);
-  if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
-    channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
+  if (const auto win_size_msec = get_qos_rate_avg_window_msec(lc_cfg->qos.value())) {
+    const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
+    if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
+      channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
+    }
   }
 }
 
@@ -479,10 +495,15 @@ void dl_logical_channel_manager::configure(logical_channel_config_list_ptr log_c
   // Set new LC configurations.
   for (logical_channel_config_ptr ch_cfg : *channel_configs) {
     channels[ch_cfg->lcid].active = true;
-    if (not is_srb(ch_cfg->lcid) and ch_cfg->qos.has_value()) {
-      const unsigned win_size_msec  = get_qos_rate_avg_window_msec(ch_cfg->qos.value());
-      const unsigned win_size_slots = win_size_msec * slots_per_sec / 1000;
-      channels[ch_cfg->lcid].avg_bytes_per_slot.resize(win_size_slots);
+    if (not is_srb(ch_cfg->lcid) and ch_cfg->qos.has_value() and ch_cfg->qos->gbr_qos_info.has_value()) {
+      if (const auto win_size_msec = get_qos_rate_avg_window_msec(ch_cfg->qos.value())) {
+        const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
+        channels[ch_cfg->lcid].avg_bytes_per_slot.resize(win_size_slots);
+      } else {
+        channels[ch_cfg->lcid].avg_bytes_per_slot.resize(0);
+      }
+    } else if (not is_srb(ch_cfg->lcid)) {
+      channels[ch_cfg->lcid].avg_bytes_per_slot.resize(0);
     }
     // buffer state stays the same when configuration is updated.
   }
@@ -495,13 +516,6 @@ void dl_logical_channel_manager::configure(logical_channel_config_list_ptr log_c
   std::sort(sorted_channels.begin(), sorted_channels.end(), [this](lcid_t lhs, lcid_t rhs) {
     return get_lc_prio(*channel_configs.value()[lhs]) < get_lc_prio(*channel_configs.value()[rhs]);
   });
-
-  // Apply token/air-cap shaping once per QoS reconfiguration (not every slot).
-  for (lcid_t lcid : sorted_channels) {
-    if (not is_srb(lcid)) {
-      sync_lc_token_rates_from_config(lcid);
-    }
-  }
 }
 
 bool dl_logical_channel_manager::has_pending_bytes(ran_slice_id_t slice_id) const
@@ -637,6 +651,7 @@ unsigned dl_logical_channel_manager::allocate_mac_sdu(dl_msg_lc_info& subpdu, lc
   srsran_sanity_check(lcid < MAX_NOF_RB_LCIDS, "Max LCID value 32 exceeded");
 
   auto& ch = channels[lcid];
+  sync_lc_token_rates_from_config(lcid);
 
   unsigned lch_bytes = pending_bytes(lcid);
   if (lch_bytes == 0 or rem_bytes <= MIN_MAC_SDU_SUBHEADER_SIZE) {
@@ -658,7 +673,7 @@ unsigned dl_logical_channel_manager::allocate_mac_sdu(dl_msg_lc_info& subpdu, lc
     alloc_bytes--;
   }
 
-  // GBR token ceiling at MAC (non-GBR 10M path). GBR/DC-GBR air cap uses grant-time TBS debit instead.
+  // GBR/DC-GBR token ceiling at MAC. non-GBR has tb_gbr_bps==0 (no token limit).
   if (ch.tb_gbr_bps > 0 and not ch.air_rate_cap) {
     const unsigned token_limit = static_cast<unsigned>(ch.token_bytes);
     if (alloc_bytes > token_limit) {
@@ -872,6 +887,7 @@ unsigned srsran::build_dl_transport_block_info(dl_msg_tb_info&             tb_in
   }
   return total_subpdu_bytes;
 }
+
 
 
 

@@ -40,7 +40,7 @@ const ue_sched_priority forbid_sched_priority = std::numeric_limits<ue_sched_pri
 const ue_sched_priority lowest_sched_priority = forbid_sched_priority + std::numeric_limits<ue_sched_priority>::min();
 
 /// Maximum priority possible
-const ue_sched_priority max_sched_priority = std::numeric_limits<ue_sched_priority>::max();
+constexpr ue_sched_priority max_sched_priority = std::numeric_limits<ue_sched_priority>::max();
 
 /// UE candidate for DL or UL scheduling.
 struct ue_newtx_candidate {
@@ -85,3 +85,4 @@ public:
 };
 
 } // namespace srsran
+
