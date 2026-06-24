@@ -141,6 +141,8 @@ public:
   const dl_logical_channel_manager& dl_logical_channels() const { return dl_lc_ch_mgr; }
   dl_logical_channel_manager&       dl_logical_channels() { return dl_lc_ch_mgr; }
 
+  bool consume_qos_rate_history_reset_pending() { return dl_lc_ch_mgr.consume_qos_rate_history_reset_pending(); }
+
   /// \brief UE UL logical channels.
   const ul_logical_channel_manager& ul_logical_channels() const { return ul_lc_ch_mgr; }
   ul_logical_channel_manager&       ul_logical_channels() { return ul_lc_ch_mgr; }

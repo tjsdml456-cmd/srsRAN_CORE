@@ -26,6 +26,7 @@
 #include "grant_params_selector.h"
 #include "srsran/scheduler/result/dci_info.h"
 #include "srsran/support/error_handling.h"
+#include <limits>
 
 using namespace srsran;
 
@@ -136,17 +137,7 @@ ue_cell_grid_allocator::alloc_uci(const ue_cell& ue_cc, const search_space_info&
 expected<ue_cell_grid_allocator::dl_newtx_grant_builder, dl_alloc_failure_cause>
 ue_cell_grid_allocator::allocate_dl_grant(const ue_newtx_dl_grant_request& request)
 {
-  unsigned       grant_bytes  = request.pending_bytes;
-  const unsigned token_budget = request.user.dl_grant_byte_budget();
-  if (token_budget < grant_bytes) {
-    grant_bytes = token_budget;
-  }
-  if (request.user.dl_air_rate_cap_enabled()) {
-    const unsigned air_cap = request.user.dl_gbr_air_cap_grant_bytes();
-    if (air_cap < grant_bytes) {
-      grant_bytes = air_cap;
-    }
-  }
+  const unsigned grant_bytes = request.pending_bytes;
   if (grant_bytes == 0) {
     return make_unexpected(dl_alloc_failure_cause::other);
   }
@@ -297,114 +288,6 @@ void ue_cell_grid_allocator::set_pdsch_params(dl_grant_info&                    
                      u.crnti);
     }
     mcs_tbs_info = mcs_or_error.value_or(sch_mcs_tbs{sch_mcs_index{0}, 0});
-
-    const unsigned tbs_cap = [&]() {
-      unsigned cap = grant.pending_bytes;
-      if (grant.user->dl_air_rate_cap_enabled()) {
-        cap = std::min(cap, grant.user->dl_gbr_air_cap_grant_bytes());
-      }
-      return cap;
-    }();
-    if (grant.user->dl_air_rate_cap_enabled() and tbs_cap > 0) {
-      auto vrb_to_crbs = [&](vrb_interval v) -> std::pair<crb_interval, crb_interval> {
-        if (enable_interleaving) {
-          const auto prbs = ss_info.interleaved_mapping.value().vrb_to_prb(v);
-          return {prb_to_crb(ss_info.dl_crb_lims, prbs.first), prb_to_crb(ss_info.dl_crb_lims, prbs.second)};
-        }
-        return {prb_to_crb(ss_info.dl_crb_lims, v.convert_to<prb_interval>()), {}};
-      };
-
-      sch_mcs_tbs                           best      = sch_mcs_tbs{sch_mcs_index{0}, 0};
-      vrb_interval                          best_vrbs = vrbs;
-      std::pair<crb_interval, crb_interval> best_crbs = crbs;
-      const unsigned                        max_n_vrbs = vrbs.length();
-
-      for (unsigned mcs_val = mcs.to_uint();; --mcs_val) {
-        const sch_mcs_index try_mcs = sch_mcs_index(static_cast<uint8_t>(mcs_val));
-
-        unsigned    lo          = 1;
-        unsigned    hi          = max_n_vrbs;
-        sch_mcs_tbs local_best  = sch_mcs_tbs{sch_mcs_index{0}, 0};
-        unsigned    local_n     = 0;
-        bool        local_found = false;
-
-        while (lo <= hi) {
-          const unsigned     n_vrbs   = (lo + hi) / 2;
-          const vrb_interval try_vrbs{vrbs.start(), vrbs.start() + n_vrbs - 1};
-          const auto         try_crbs = vrb_to_crbs(try_vrbs);
-          const auto         resized =
-              calculate_dl_mcs_tbs(pdsch_alloc, ss_info, pdsch_td_res_index, try_crbs, try_mcs, nof_layers);
-          if (resized.has_value() and resized->tbs <= tbs_cap) {
-            local_best  = resized.value();
-            local_n     = n_vrbs;
-            local_found = true;
-            lo          = n_vrbs + 1;
-          } else {
-            if (n_vrbs == 0) {
-              break;
-            }
-            hi = n_vrbs - 1;
-          }
-        }
-
-        if (local_found and local_best.tbs > best.tbs) {
-          best      = local_best;
-          best_vrbs = vrb_interval{vrbs.start(), vrbs.start() + local_n - 1};
-          best_crbs = vrb_to_crbs(best_vrbs);
-        }
-
-        if (mcs_val == 0) {
-          break;
-        }
-      }
-
-      if (best.tbs > 0) {
-        mcs_tbs_info = best;
-        vrbs         = best_vrbs;
-        crbs         = best_crbs;
-      }
-      if (mcs_tbs_info.tbs > tbs_cap) {
-        sch_mcs_index use_mcs  = mcs;
-        vrb_interval  use_vrbs = vrbs;
-        crb_interval  crbs0    = crbs.first;
-        crb_interval  crbs1    = crbs.second;
-        for (unsigned attempt = 0; attempt < 64 and mcs_tbs_info.tbs > tbs_cap; ++attempt) {
-          if (use_vrbs.length() > 1) {
-            use_vrbs = vrb_interval{use_vrbs.start(), use_vrbs.stop() - 1};
-          } else if (use_mcs.to_uint() > 0) {
-            use_mcs = sch_mcs_index(use_mcs.to_uint() - 1);
-          } else {
-            break;
-          }
-          const auto try_crbs = vrb_to_crbs(use_vrbs);
-          crbs0                 = try_crbs.first;
-          crbs1                 = try_crbs.second;
-          auto resized =
-              calculate_dl_mcs_tbs(pdsch_alloc, ss_info, pdsch_td_res_index, {crbs0, crbs1}, use_mcs, nof_layers);
-          if (not resized.has_value()) {
-            break;
-          }
-          mcs_tbs_info = resized.value();
-        }
-        vrbs = use_vrbs;
-        crbs = {crbs0, crbs1};
-      }
-    } else if (tbs_cap > 0 and mcs_tbs_info.tbs > tbs_cap and vrbs.length() > 1) {
-      while (vrbs.length() > 1 and mcs_tbs_info.tbs > tbs_cap) {
-        vrbs = vrb_interval{vrbs.start(), vrbs.stop() - 1};
-        if (enable_interleaving) {
-          const auto prbs = ss_info.interleaved_mapping.value().vrb_to_prb(vrbs);
-          crbs = {prb_to_crb(ss_info.dl_crb_lims, prbs.first), prb_to_crb(ss_info.dl_crb_lims, prbs.second)};
-        } else {
-          crbs = {prb_to_crb(ss_info.dl_crb_lims, vrbs.convert_to<prb_interval>()), {}};
-        }
-        auto resized = calculate_dl_mcs_tbs(pdsch_alloc, ss_info, pdsch_td_res_index, crbs, mcs, nof_layers);
-        if (not resized.has_value()) {
-          break;
-        }
-        mcs_tbs_info = resized.value();
-      }
-    }
   }
 
   // Mark resources as occupied in the ResourceGrid.
@@ -514,10 +397,6 @@ void ue_cell_grid_allocator::set_pdsch_params(dl_grant_info&                    
 
     // Update context with buffer occupancy after the TB is built.
     msg.context.buffer_occupancy = u.dl_logical_channels().pending_bytes();
-
-    if (grant.user->dl_air_rate_cap_enabled()) {
-      grant.user->debit_dl_grant_tokens(mcs_tbs_info.tbs);
-    }
   }
 
   // Save PDSCH parameters in DL HARQ.
@@ -1034,4 +913,5 @@ void ue_cell_grid_allocator::ul_newtx_grant_builder::set_pusch_params(const vrb_
   // Set PUSCH parameters and set parent as nullptr to avoid further modifications.
   parent = nullptr;
 }
+
 

@@ -26,7 +26,6 @@
 #include "srsran/adt/slotted_array.h"
 #include "srsran/scheduler/config/scheduler_expert_config.h"
 #include "srsran/support/math/exponential_averager.h"
-#include <optional>
 
 namespace srsran {
 
@@ -79,6 +78,8 @@ private:
     void save_dl_alloc(uint32_t total_alloc_bytes, const dl_msg_tb_info& tb_info);
     void save_ul_alloc(unsigned alloc_bytes);
 
+    void reset_rate_history(const slice_ue& u);
+
     const du_ue_index_t       ue_index;
     const du_cell_index_t     cell_index;
     const scheduler_time_qos* parent;
@@ -91,9 +92,6 @@ private:
   private:
     void compute_dl_avg_rate(const slice_ue& u, unsigned nof_slots_elapsed);
     void compute_ul_avg_rate(const slice_ue& u, unsigned nof_slots_elapsed);
-    void apply_core_qos_token_bucket_rates(const slice_ue& u);
-
-    std::optional<uint64_t> last_core_qos_signature;
 
     // Sum of DL bytes allocated for a given slot, before it is taken into account in the average rate computation.
     unsigned dl_sum_alloc_bytes = 0;
@@ -112,5 +110,6 @@ private:
 };
 
 } // namespace srsran
+
 
 

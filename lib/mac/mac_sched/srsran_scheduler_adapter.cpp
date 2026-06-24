@@ -251,9 +251,11 @@ void srsran_scheduler_adapter::handle_dl_buffer_state_update(
     // Check if at least one slot indication has been processed.
     const high_resolution_clock::time_point sl_tp = last_slot_tp.load(std::memory_order_relaxed);
     if (sl_tp != high_resolution_clock::time_point{}) {
-      // Convert HOL TOA from chrono time point to slots.
-      bs.hol_toa =
-          chrono_to_slot_point(mac_dl_bs_ind.hol_toa.value(), sl_tp, last_slot_point.load(std::memory_order_relaxed));
+      // hol_toa is in system_clock (RLC layer). Map to high_resolution_clock via relative delay.
+      const auto system_toa = mac_dl_bs_ind.hol_toa.value();
+      const auto delay      = system_clock::now() - system_toa;
+      const auto hr_toa     = sl_tp - std::chrono::duration_cast<high_resolution_clock::duration>(delay);
+      bs.hol_toa            = chrono_to_slot_point(hr_toa, sl_tp, last_slot_point.load(std::memory_order_relaxed));
     }
   }
 
@@ -426,3 +428,4 @@ void srsran_scheduler_adapter::cell_handler::handle_srs(const mac_srs_indication
   // Forward SRS into positioning handler.
   pos_handler->handle_srs_indication(msg);
 }
+

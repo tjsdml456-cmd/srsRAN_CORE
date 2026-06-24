@@ -223,3 +223,4 @@ unsigned ue::pending_ul_newtx_bytes() const
   return pending_bytes > 0 ? pending_bytes : (ul_lc_ch_mgr.has_pending_sr() ? SR_GRANT_BYTES : 0);
 }
 
+

@@ -25,6 +25,7 @@
 #include "srsran/ran/pdcch/search_space.h"
 #include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/support/math/mod_math_utils.h"
+#include <algorithm>
 #include <chrono>
 
 using namespace srsran;
@@ -465,6 +466,8 @@ unsigned intra_slice_scheduler::schedule_dl_newtx_candidates(dl_ran_slice_candid
                                                              scheduler_policy&       dl_policy,
                                                              unsigned                max_ue_grants_to_alloc)
 {
+  pending_dl_newtxs.clear();
+
   // Prepare candidate list.
   prepare_newtx_dl_candidates(slice, dl_policy);
   if (newtx_candidates.empty()) {
@@ -597,6 +600,8 @@ unsigned intra_slice_scheduler::schedule_ul_newtx_candidates(ul_ran_slice_candid
                                                              scheduler_policy&       ul_policy,
                                                              unsigned                max_ue_grants_to_alloc)
 {
+  pending_ul_newtxs.clear();
+
   // Prepare candidate list.
   prepare_newtx_ul_candidates(slice, ul_policy);
   if (newtx_candidates.empty()) {
@@ -986,4 +991,5 @@ void intra_slice_scheduler::update_used_ul_vrbs(const ul_ran_slice_candidate& sl
                      .ul_res_grid.used_prbs(init_ul_bwp.generic_params.scs, ul_crb_lims, symbols_to_check)
                      .convert_to<vrb_bitmap>();
 }
+
 

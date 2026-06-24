@@ -147,12 +147,20 @@ public:
     return is_active(lcid) ? get_mac_sdu_required_bytes(channels[lcid].buf_st) : 0;
   }
 
-  /// \brief Average bit rate, in bps, for a given LCID.
+  /// \brief Average delivered bit rate, in bps, for a given LCID (MAC SDU payload, time-windowed).
   double average_bit_rate(lcid_t lcid) const
   {
-    return not is_srb(lcid) and is_active(lcid) and channels[lcid].avg_bytes_per_slot.size() > 0
-               ? channels[lcid].avg_bytes_per_slot.average() * 8 * slots_per_sec
+    return not is_srb(lcid) and is_active(lcid) and channels[lcid].track_delivered_rate
+               ? channels[lcid].delivered_rate.average_bps()
                : 0.0;
+  }
+
+  /// Consume one-shot flag set when QoS config changes and PF/LC rate history should be cleared.
+  bool consume_qos_rate_history_reset_pending()
+  {
+    const bool pending = qos_rate_history_reset_pending;
+    qos_rate_history_reset_pending = false;
+    return pending;
   }
 
   slot_point hol_toa(lcid_t lcid) const { return is_active(lcid) ? channels[lcid].hol_toa : slot_point{}; }
@@ -190,35 +198,23 @@ public:
   /// \brief Returns a list of LCIDs sorted based on decreasing order of priority.
   span<const lcid_t> get_prioritized_logical_channels() const { return sorted_channels; }
 
-  /// \brief Configure per-LC token bucket (GBR/MBR in bps from core QoS). GBR=0 disables limiting.
-  void set_token_rates(lcid_t lcid, uint64_t gbr_bps, uint64_t mbr_bps, bool air_rate_cap = false);
-
-  bool is_token_throttled(ran_slice_id_t slice_id) const;
-
-  unsigned get_dl_token_budget(lcid_t lcid) const;
-
-  bool dl_air_rate_cap_enabled(ran_slice_id_t slice_id) const;
-
-  unsigned get_dl_gbr_air_cap_grant_bytes(ran_slice_id_t slice_id) const;
-
-  unsigned get_dl_grant_byte_budget(ran_slice_id_t slice_id) const;
-
   void reset_drbs_rate_averages();
 
-  /// Resize per-LC moving average to match configured QoS averaging window (e.g. 300 ms after PCF update).
+  /// Resize per-LC moving average to match configured QoS averaging window (from 5QI table).
   void apply_lc_rate_avg_window(lcid_t lcid);
 
-  void debit_dl_grant_tokens(ran_slice_id_t slice_id, unsigned tbs_bytes);
-
 private:
-  void sync_lc_token_rates_from_config(lcid_t lcid);
-
   struct channel_context : public intrusive_double_linked_list_element<> {
     /// Whether the configured logical channel is currently active.
     bool active = false;
     /// DL Buffer status of this logical channel.
     unsigned buf_st = 0;
-    /// Bytes-per-slot average for this logical channel.
+    /// Delivered MAC SDU payload throughput tracker for GBR gbr_weight (time-windowed, MAC-THP style).
+    lc_dl_delivered_rate_tracker delivered_rate;
+    bool                         track_delivered_rate = false;
+    /// Cached MFBR (max_br_dl) for fixed-window policing at MAC grant time. Zero disables policing.
+    uint64_t mbr_bps = 0;
+    /// Legacy bytes-per-slot average (unused for gbr_weight; kept for window sizing hooks).
     moving_averager<unsigned> avg_bytes_per_slot;
     /// Current slot sched bytes.
     unsigned last_sched_bytes = 0;
@@ -226,10 +222,6 @@ private:
     slot_point hol_toa;
     /// Slice associated with this channel.
     std::optional<ran_slice_id_t> slice_id;
-    double       token_bytes   = 0.0;
-    uint64_t     tb_gbr_bps    = 0;
-    uint64_t     tb_mbr_bps    = 0;
-    bool         air_rate_cap  = false;
 
     void reset();
   };
@@ -267,8 +259,10 @@ private:
 
   const du_ue_index_t ue_index;
 
-  /// Per-UE shaped MAC SDU payload throughput (post token bucket).
+  /// Per-UE DL MAC SDU payload throughput tracker (measurement only).
   dl_mac_shaped_thp_tracker shaped_thp_tracker;
+
+  bool qos_rate_history_reset_pending = false;
 };
 
 /// \brief Allocate MAC SDUs and corresponding MAC subPDU subheaders.
@@ -317,5 +311,6 @@ unsigned build_dl_transport_block_info(dl_msg_tb_info&             tb_info,
                                        ran_slice_id_t              slice_id);
 
 } // namespace srsran
+
 
 

@@ -21,41 +21,12 @@
  */
 
 #include "dl_logical_channel_manager.h"
-#include "srsran/ran/qos/arp_prio_level.h"
-#include "srsran/ran/qos/five_qi_qos_mapping.h"
 #include "srsran/srslog/srslog.h"
+#include "srsran/ran/qos/arp_prio_level.h"
 #include <algorithm>
-#include <limits>
+#include <chrono>
 
 using namespace srsran;
-
-// GBR/DC-GBR air cap: allow up to N slots of GBR bytes per grant (TBS is discrete; 1 slot undershoots target).
-static constexpr unsigned AIR_RATE_CAP_GRANT_SLOT_FACTOR = 2;
-
-// 5M DC-GBR / 7M GBR use TBS-level air cap; non-GBR has no MAC token bucket.
-static constexpr uint64_t DL_AIR_TBS_CAP_MIN_GBR_BPS = 5'000'000;
-
-static bool dl_air_tbs_cap_applies(uint64_t gbr_bps)
-{
-  return gbr_bps >= DL_AIR_TBS_CAP_MIN_GBR_BPS;
-}
-
-namespace {
-
-unsigned gbr_bytes_per_slot_ceil(uint64_t gbr_bps, unsigned slots_per_sec)
-{
-  const uint64_t denom = 8ULL * static_cast<uint64_t>(slots_per_sec);
-  return static_cast<unsigned>(std::max<uint64_t>(1ULL, (gbr_bps + denom - 1ULL) / denom));
-}
-
-unsigned gbr_air_cap_grant_bytes(uint64_t gbr_bps, unsigned slots_per_sec)
-{
-  const unsigned per_slot = gbr_bytes_per_slot_ceil(gbr_bps, slots_per_sec);
-  // 2 slots of GBR bytes: enough headroom for discrete TBS (~7M/5M) without cell-peak overshoot.
-  return per_slot * AIR_RATE_CAP_GRANT_SLOT_FACTOR;
-}
-
-} // namespace
 
 static unsigned get_mac_sdu_size(unsigned sdu_and_subheader_bytes)
 {
@@ -83,18 +54,39 @@ static constexpr unsigned MAX_CES_PER_UE = 5;
 // Size of the pending_ces queue.
 static constexpr unsigned MAX_PENDING_CES = MAX_NOF_DU_UES * MAX_CES_PER_UE;
 
-// Max burst stored in the token bucket (seconds of MBR). Smaller = flatter throughput near GBR.
-static constexpr double TOKEN_BUCKET_BURST_SEC = 0.005;
-
-// Defer DL scheduling only when token cannot fun d a minimal MAC SDU (priority gate, not rate cap).
-static constexpr unsigned MIN_TOKEN_TO_SCHED = 500;
+// GBR gbr_weight and MFBR policer share this window (MFBR policing at MAC grant time).
+// 300ms: smoother than 100ms cliff; fits ~250ms steady state per 0.5s QoS phase after QRT.
+static constexpr unsigned GBR_RATE_AVG_WINDOW_MS = 300;
 
 static std::optional<unsigned> get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
 {
   if (not qos.gbr_qos_info.has_value()) {
     return std::nullopt;
   }
-  return get_configured_qos_average_window_ms(qos.qos, qos.five_qi);
+  return GBR_RATE_AVG_WINDOW_MS;
+}
+
+static void sync_lc_mbr_bps(uint64_t& mbr_bps_out, const logical_channel_config& lc_cfg)
+{
+  if (lc_cfg.qos.has_value() and lc_cfg.qos->gbr_qos_info.has_value()) {
+    mbr_bps_out = lc_cfg.qos->gbr_qos_info->max_br_dl;
+    if (mbr_bps_out == 0) {
+      mbr_bps_out = lc_cfg.qos->gbr_qos_info->gbr_dl;
+    }
+    return;
+  }
+  mbr_bps_out = 0;
+}
+
+static bool qos_config_changed(const logical_channel_config* old_lc, const logical_channel_config* new_lc)
+{
+  if (new_lc == nullptr or is_srb(new_lc->lcid) or not new_lc->qos.has_value()) {
+    return false;
+  }
+  if (old_lc == nullptr or not old_lc->qos.has_value()) {
+    return true;
+  }
+  return not(old_lc->qos == new_lc->qos);
 }
 
 dl_logical_channel_manager::dl_logical_channel_manager(subcarrier_spacing              scs_common_,
@@ -116,243 +108,14 @@ dl_logical_channel_manager::dl_logical_channel_manager(subcarrier_spacing       
 
 void dl_logical_channel_manager::slot_indication()
 {
-  const double slot_dur_s = 1.0 / static_cast<double>(slots_per_sec);
-
-  // Update the bit rates of the UE logical channels with tracked bit rates.
+  const auto now = std::chrono::steady_clock::now();
   for (lcid_t lcid : sorted_channels) {
-    if (not is_srb(lcid)) {
-      auto& ch = channels[lcid];
-      sync_lc_token_rates_from_config(lcid);
-      // Check if avg_bytes_per_slot needs to be initialized for GBR flows
-      // This handles cases where runtime_qos.res_type changed to GBR after configure() was called
-      if (channels[lcid].avg_bytes_per_slot.size() == 0 and channel_configs.has_value() and
-          channel_configs->contains(lcid)) {
-        logical_channel_config_ptr lc_cfg = (*channel_configs)[lcid];
-        if (lc_cfg->qos.has_value() and lc_cfg->qos->gbr_qos_info.has_value()) {
-          if (const auto win_size_msec = get_qos_rate_avg_window_msec(lc_cfg->qos.value())) {
-            const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
-            if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
-              channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
-            }
-          }
-        }
-      }
-      
-      // Push last_sched_bytes if avg_bytes_per_slot is initialized
-      if (ch.avg_bytes_per_slot.size() > 0) {
-        ch.avg_bytes_per_slot.push(ch.last_sched_bytes);
-        ch.last_sched_bytes = 0;
-      }
-
-      // Token bucket refill (GBR/DC-GBR only).
-      if (ch.tb_gbr_bps > 0) {
-        ch.token_bytes += (static_cast<double>(ch.tb_gbr_bps) / 8.0) * slot_dur_s;
-        const double cap = (static_cast<double>(ch.tb_mbr_bps) / 8.0) * TOKEN_BUCKET_BURST_SEC;
-        if (ch.token_bytes > cap) {
-          ch.token_bytes = cap;
-        }
-      }
+    if (not is_srb(lcid) and channels[lcid].track_delivered_rate) {
+      channels[lcid].delivered_rate.on_tick(now);
     }
   }
 
-  shaped_thp_tracker.on_tick(std::chrono::steady_clock::now());
-}
-
-void dl_logical_channel_manager::sync_lc_token_rates_from_config(lcid_t lcid)
-{
-  auto& ch = channels[lcid];
-  // Token rates set from core QoS (PCF/NGAP) own tb_gbr/mbr while air cap is active.
-  if (ch.air_rate_cap) {
-    return;
-  }
-  if (not channel_configs.has_value() or not channel_configs->contains(lcid)) {
-    return;
-  }
-  const logical_channel_config_ptr lc_cfg = (*channel_configs)[lcid];
-  if (not lc_cfg->qos.has_value()) {
-    return;
-  }
-  const auto* qos_chars = get_5qi_to_qos_characteristics_mapping(lc_cfg->qos->five_qi);
-  const bool  is_gbr_5qi =
-      qos_chars != nullptr and (qos_chars->res_type == qos_flow_resource_type::gbr or
-                                qos_chars->res_type == qos_flow_resource_type::delay_critical_gbr);
-  if (not is_gbr_5qi or not lc_cfg->qos->gbr_qos_info.has_value()) {
-    if (ch.tb_gbr_bps != 0 or ch.air_rate_cap) {
-      ch.tb_gbr_bps   = 0;
-      ch.tb_mbr_bps   = 0;
-      ch.token_bytes  = 0.0;
-      ch.air_rate_cap = false;
-    }
-    return;
-  }
-  ch.tb_gbr_bps = lc_cfg->qos->gbr_qos_info->gbr_dl;
-  ch.tb_mbr_bps = lc_cfg->qos->gbr_qos_info->max_br_dl;
-  if (ch.tb_mbr_bps == 0) {
-    ch.tb_mbr_bps = ch.tb_gbr_bps;
-  }
-}
-
-void dl_logical_channel_manager::set_token_rates(lcid_t lcid, uint64_t gbr_bps, uint64_t mbr_bps, bool air_rate_cap_en)
-{
-  srsran_assert(lcid < MAX_NOF_RB_LCIDS, "Max LCID value 32 exceeded");
-  auto&        ch            = channels[lcid];
-  const bool   rates_changed = (ch.tb_gbr_bps != gbr_bps or ch.tb_mbr_bps != mbr_bps or ch.air_rate_cap != air_rate_cap_en);
-  ch.tb_gbr_bps              = gbr_bps;
-  ch.tb_mbr_bps              = mbr_bps;
-  ch.air_rate_cap            = air_rate_cap_en and dl_air_tbs_cap_applies(gbr_bps);
-  if (gbr_bps == 0) {
-    ch.token_bytes   = 0.0;
-    ch.air_rate_cap  = false;
-    if (rates_changed) {
-      static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
-      logger.info("[TOKEN-BUCKET] SET LCID{} gbr=0 mbr=0 (disabled)", static_cast<unsigned>(lcid));
-    }
-    return;
-  }
-  if (rates_changed) {
-    const double cap = (static_cast<double>(mbr_bps) / 8.0) * TOKEN_BUCKET_BURST_SEC;
-    ch.token_bytes   = cap;
-  }
-  if (rates_changed) {
-    static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
-    logger.info("[TOKEN-BUCKET] SET LCID{} gbr={} mbr={} air_cap={} token={:.0f} cap={:.0f}",
-                static_cast<unsigned>(lcid),
-                gbr_bps,
-                mbr_bps,
-                ch.air_rate_cap,
-                ch.token_bytes,
-                (static_cast<double>(mbr_bps) / 8.0) * TOKEN_BUCKET_BURST_SEC);
-  }
-  if (gbr_bps > 0) {
-    apply_lc_rate_avg_window(lcid);
-  }
-}
-
-bool dl_logical_channel_manager::is_token_throttled(ran_slice_id_t slice_id) const
-{
-  if (fallback_state or not has_slice(slice_id)) {
-    return false;
-  }
-
-  for (lcid_t lcid : sorted_channels) {
-    const auto& ch = channels[lcid];
-    if (not ch.active or ch.slice_id != slice_id or ch.tb_gbr_bps == 0 or ch.buf_st == 0) {
-      continue;
-    }
-
-    // Per-grant TBS air cap enforces the GBR/DC-GBR rate; token gate would starve every other slot.
-    if (ch.air_rate_cap) {
-      continue;
-    }
-
-    if (ch.token_bytes < static_cast<double>(MIN_TOKEN_TO_SCHED)) {
-      static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
-      logger.info("[TOKEN-THROTTLE] LCID{} token={:.0f} min={} -> defer",
-                  static_cast<unsigned>(lcid),
-                  ch.token_bytes,
-                  MIN_TOKEN_TO_SCHED);
-      return true;
-    }
-  }
-  return false;
-}
-
-unsigned dl_logical_channel_manager::get_dl_token_budget(lcid_t lcid) const
-{
-  if (not is_active(lcid)) {
-    return 0;
-  }
-  const auto& ch = channels[lcid];
-  if (ch.tb_gbr_bps == 0) {
-    return std::numeric_limits<unsigned>::max();
-  }
-  return static_cast<unsigned>(ch.token_bytes);
-}
-
-unsigned dl_logical_channel_manager::get_dl_grant_byte_budget(ran_slice_id_t slice_id) const
-{
-  if (fallback_state or not has_slice(slice_id)) {
-    return 0;
-  }
-
-  unsigned lc_bytes = 0;
-  for (const channel_context& ch : slice_lcid_list_lookup[slice_id.value()]) {
-    if (not ch.active or ch.buf_st == 0) {
-      continue;
-    }
-    const unsigned pending = get_mac_sdu_required_bytes(ch.buf_st);
-    if (ch.tb_gbr_bps > 0) {
-      if (ch.air_rate_cap) {
-        lc_bytes += std::min(pending, gbr_air_cap_grant_bytes(ch.tb_gbr_bps, slots_per_sec));
-      } else {
-        unsigned budget = std::min(pending, static_cast<unsigned>(ch.token_bytes));
-        lc_bytes += budget;
-      }
-    } else {
-      lc_bytes += pending;
-    }
-  }
-
-  const unsigned ce_bytes = pending_ce_bytes();
-  if (ce_bytes == 0) {
-    return lc_bytes;
-  }
-  if (lc_bytes > 0) {
-    return lc_bytes + ce_bytes;
-  }
-  if (slice_id == SRB_RAN_SLICE_ID) {
-    for (lcid_t lcid : sorted_channels) {
-      if (lcid > LCID_SRB1 and pending_bytes(lcid) > 0) {
-        return 0;
-      }
-    }
-    return ce_bytes;
-  }
-  return lc_bytes;
-}
-
-bool dl_logical_channel_manager::dl_air_rate_cap_enabled(ran_slice_id_t slice_id) const
-{
-  if (fallback_state or not has_slice(slice_id)) {
-    return false;
-  }
-  for (const channel_context& ch : slice_lcid_list_lookup[slice_id.value()]) {
-    if (ch.active and ch.air_rate_cap) {
-      return true;
-    }
-  }
-  return false;
-}
-
-unsigned dl_logical_channel_manager::get_dl_gbr_air_cap_grant_bytes(ran_slice_id_t slice_id) const
-{
-  if (fallback_state or not has_slice(slice_id)) {
-    return std::numeric_limits<unsigned>::max();
-  }
-
-  unsigned cap = std::numeric_limits<unsigned>::max();
-  for (const channel_context& ch : slice_lcid_list_lookup[slice_id.value()]) {
-    if (not ch.active or not ch.air_rate_cap) {
-      continue;
-    }
-    cap = std::min(cap, gbr_air_cap_grant_bytes(ch.tb_gbr_bps, slots_per_sec));
-  }
-  return cap;
-}
-
-void dl_logical_channel_manager::debit_dl_grant_tokens(ran_slice_id_t slice_id, unsigned tbs_bytes)
-{
-  if (fallback_state or tbs_bytes == 0 or not has_slice(slice_id)) {
-    return;
-  }
-
-  for (channel_context& ch : slice_lcid_list_lookup[slice_id.value()]) {
-    if (not ch.active or not ch.air_rate_cap) {
-      continue;
-    }
-    // Air cap sizes each PDSCH TBS. Full-TBS debit overshoots slot refill (cap=2× slot) → throttle sawtooth.
-    return;
-  }
+  shaped_thp_tracker.on_tick(now);
 }
 
 void dl_logical_channel_manager::apply_lc_rate_avg_window(lcid_t lcid)
@@ -361,15 +124,24 @@ void dl_logical_channel_manager::apply_lc_rate_avg_window(lcid_t lcid)
     return;
   }
   const logical_channel_config_ptr lc_cfg = (*channel_configs)[lcid];
+  auto&                            ch     = channels[lcid];
   if (not lc_cfg->qos.has_value() or not lc_cfg->qos->gbr_qos_info.has_value()) {
-    channels[lcid].avg_bytes_per_slot.resize(0);
+    ch.track_delivered_rate = false;
+    ch.mbr_bps              = 0;
+    ch.delivered_rate.reset();
+    ch.avg_bytes_per_slot.resize(0);
     return;
   }
+  sync_lc_mbr_bps(ch.mbr_bps, *lc_cfg);
   if (const auto win_size_msec = get_qos_rate_avg_window_msec(lc_cfg->qos.value())) {
     const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
-    if (channels[lcid].avg_bytes_per_slot.size() != win_size_slots) {
-      channels[lcid].avg_bytes_per_slot.resize(win_size_slots);
-    }
+    ch.avg_bytes_per_slot.resize(win_size_slots);
+    ch.track_delivered_rate = true;
+    ch.delivered_rate.set_window(std::chrono::milliseconds(*win_size_msec));
+  } else {
+    ch.track_delivered_rate = false;
+    ch.delivered_rate.reset();
+    ch.avg_bytes_per_slot.resize(0);
   }
 }
 
@@ -380,15 +152,18 @@ void dl_logical_channel_manager::reset_drbs_rate_averages()
       continue;
     }
     auto& ch = channels[lcid];
+    ch.last_sched_bytes = 0;
+    ch.delivered_rate.reset();
+    if (ch.track_delivered_rate) {
+      ch.delivered_rate.set_window(std::chrono::milliseconds(GBR_RATE_AVG_WINDOW_MS));
+    }
     const unsigned win = ch.avg_bytes_per_slot.size();
     if (win == 0) {
-      ch.last_sched_bytes = 0;
       continue;
     }
     for (unsigned i = 0; i < win; ++i) {
       ch.avg_bytes_per_slot.push(0);
     }
-    ch.last_sched_bytes = 0;
   }
 }
 
@@ -492,20 +267,48 @@ void dl_logical_channel_manager::configure(logical_channel_config_list_ptr log_c
     return;
   }
 
+  bool qos_changed = false;
+
   // Set new LC configurations.
   for (logical_channel_config_ptr ch_cfg : *channel_configs) {
+    const logical_channel_config* old_lc = nullptr;
+    if (old_cfgs.has_value() and old_cfgs->contains(ch_cfg->lcid)) {
+      old_lc = (*old_cfgs)[ch_cfg->lcid].operator->();
+    }
+    if (qos_config_changed(old_lc, ch_cfg.operator->())) {
+      qos_changed = true;
+    }
+
     channels[ch_cfg->lcid].active = true;
+    auto& ch                     = channels[ch_cfg->lcid];
     if (not is_srb(ch_cfg->lcid) and ch_cfg->qos.has_value() and ch_cfg->qos->gbr_qos_info.has_value()) {
+      sync_lc_mbr_bps(ch.mbr_bps, *ch_cfg);
       if (const auto win_size_msec = get_qos_rate_avg_window_msec(ch_cfg->qos.value())) {
         const unsigned win_size_slots = std::max(1U, *win_size_msec * slots_per_sec / 1000);
-        channels[ch_cfg->lcid].avg_bytes_per_slot.resize(win_size_slots);
+        ch.avg_bytes_per_slot.resize(win_size_slots);
+        ch.track_delivered_rate = true;
+        ch.delivered_rate.set_window(std::chrono::milliseconds(*win_size_msec));
       } else {
-        channels[ch_cfg->lcid].avg_bytes_per_slot.resize(0);
+        ch.track_delivered_rate = false;
+        ch.mbr_bps              = 0;
+        ch.delivered_rate.reset();
+        ch.avg_bytes_per_slot.resize(0);
       }
     } else if (not is_srb(ch_cfg->lcid)) {
-      channels[ch_cfg->lcid].avg_bytes_per_slot.resize(0);
+      ch.track_delivered_rate = false;
+      ch.mbr_bps              = 0;
+      ch.delivered_rate.reset();
+      ch.avg_bytes_per_slot.resize(0);
     }
     // buffer state stays the same when configuration is updated.
+  }
+
+  if (qos_changed) {
+    static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
+    reset_drbs_rate_averages();
+    qos_rate_history_reset_pending = true;
+    logger.info("UE{} [QOS-RECONFIG] QoS signature changed — reset LC delivered-rate and pending PF history",
+                fmt::underlying(ue_index));
   }
 
   // Refresh sorted channels list.
@@ -651,7 +454,6 @@ unsigned dl_logical_channel_manager::allocate_mac_sdu(dl_msg_lc_info& subpdu, lc
   srsran_sanity_check(lcid < MAX_NOF_RB_LCIDS, "Max LCID value 32 exceeded");
 
   auto& ch = channels[lcid];
-  sync_lc_token_rates_from_config(lcid);
 
   unsigned lch_bytes = pending_bytes(lcid);
   if (lch_bytes == 0 or rem_bytes <= MIN_MAC_SDU_SUBHEADER_SIZE) {
@@ -673,22 +475,43 @@ unsigned dl_logical_channel_manager::allocate_mac_sdu(dl_msg_lc_info& subpdu, lc
     alloc_bytes--;
   }
 
-  // GBR/DC-GBR token ceiling at MAC. non-GBR has tb_gbr_bps==0 (no token limit).
-  if (ch.tb_gbr_bps > 0 and not ch.air_rate_cap) {
-    const unsigned token_limit = static_cast<unsigned>(ch.token_bytes);
-    if (alloc_bytes > token_limit) {
-      alloc_bytes = token_limit;
-    }
-    if (alloc_bytes <= MIN_MAC_SDU_SUBHEADER_SIZE) {
+  unsigned sdu_size = get_mac_sdu_size(alloc_bytes);
+
+  // MFBR policing: clamp MAC SDU payload to remaining bytes in the current measurement window.
+  if (not is_srb(lcid) and ch.mbr_bps > 0 and ch.track_delivered_rate) {
+    const auto     now            = std::chrono::steady_clock::now();
+    const unsigned payload_budget = ch.delivered_rate.mfbr_remaining_payload_budget(ch.mbr_bps, now);
+    if (payload_budget == 0) {
       return 0;
     }
+    if (sdu_size > payload_budget) {
+      sdu_size    = payload_budget;
+      alloc_bytes = get_mac_sdu_required_bytes(sdu_size);
+      if (alloc_bytes > rem_bytes) {
+        alloc_bytes = rem_bytes;
+        sdu_size    = get_mac_sdu_size(alloc_bytes);
+        if (sdu_size > payload_budget) {
+          sdu_size    = payload_budget;
+          alloc_bytes = get_mac_sdu_required_bytes(sdu_size);
+        }
+      }
+      if (alloc_bytes <= MIN_MAC_SDU_SUBHEADER_SIZE or sdu_size == 0) {
+        return 0;
+      }
+    }
   }
-
-  unsigned sdu_size = get_mac_sdu_size(alloc_bytes);
 
   // Update DL Buffer Status to avoid reallocating the same LCID bytes.
   ch.last_sched_bytes = std::min(sdu_size, ch.buf_st);
   ch.buf_st -= ch.last_sched_bytes;
+
+  if (sdu_size > 0 and not is_srb(lcid)) {
+    const auto now = std::chrono::steady_clock::now();
+    if (ch.track_delivered_rate) {
+      ch.delivered_rate.on_payload(sdu_size, now);
+    }
+    shaped_thp_tracker.on_shaped_payload(sdu_size, now);
+  }
 
   if (lcid != LCID_SRB0 and ch.buf_st > 0) {
     static constexpr unsigned RLC_SEGMENTATION_OVERHEAD = 4;
@@ -701,17 +524,6 @@ unsigned dl_logical_channel_manager::allocate_mac_sdu(dl_msg_lc_info& subpdu, lc
 
   subpdu.lcid        = (lcid_dl_sch_t::options)lcid;
   subpdu.sched_bytes = sdu_size;
-
-  if (sdu_size > 0 and not is_srb(lcid)) {
-    shaped_thp_tracker.on_shaped_payload(sdu_size, std::chrono::steady_clock::now());
-  }
-
-  if (ch.tb_gbr_bps > 0 and not ch.air_rate_cap) {
-    ch.token_bytes -= static_cast<double>(alloc_bytes);
-    if (ch.token_bytes < 0) {
-      ch.token_bytes = 0;
-    }
-  }
 
   return alloc_bytes;
 }
@@ -756,13 +568,12 @@ unsigned dl_logical_channel_manager::allocate_mac_ce(dl_msg_lc_info& subpdu, uns
 
 void dl_logical_channel_manager::channel_context::reset()
 {
-  active           = false;
-  buf_st           = 0;
-  last_sched_bytes = 0;
-  token_bytes      = 0.0;
-  tb_gbr_bps       = 0;
-  tb_mbr_bps       = 0;
-  air_rate_cap     = false;
+  active                = false;
+  buf_st                = 0;
+  last_sched_bytes      = 0;
+  track_delivered_rate  = false;
+  mbr_bps               = 0;
+  delivered_rate.reset();
   avg_bytes_per_slot.resize(0);
 }
 

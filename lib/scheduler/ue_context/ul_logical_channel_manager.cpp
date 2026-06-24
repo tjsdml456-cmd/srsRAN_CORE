@@ -21,19 +21,21 @@
  */
 
 #include "ul_logical_channel_manager.h"
-#include "srsran/ran/qos/five_qi_qos_mapping.h"
 
 using namespace srsran;
 
 // Initial capacity for the slice_lcid_list_lookup vector.
 static constexpr unsigned INITIAL_SLICE_CAPACITY = 4;
 
+// GBR gbr_weight uses ul_avg_rate over this window (stock 5QI table: 2000 ms).
+static constexpr unsigned GBR_RATE_AVG_WINDOW_MS = 100;
+
 static std::optional<unsigned> get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
 {
   if (not qos.gbr_qos_info.has_value()) {
     return std::nullopt;
   }
-  return get_configured_qos_average_window_ms(qos.qos, qos.five_qi);
+  return GBR_RATE_AVG_WINDOW_MS;
 }
 
 ul_logical_channel_manager::ul_logical_channel_manager(subcarrier_spacing              scs,

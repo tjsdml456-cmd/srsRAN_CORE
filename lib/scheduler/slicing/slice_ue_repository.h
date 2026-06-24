@@ -118,30 +118,14 @@ public:
     return contains(lcid) ? u.dl_logical_channels().hol_toa(lcid) : slot_point{};
   }
 
-  void set_dl_token_rates(lcid_t lcid, uint64_t gbr_bps, uint64_t mbr_bps, bool air_rate_cap = false) const
-  {
-    u.dl_logical_channels().set_token_rates(lcid, gbr_bps, mbr_bps, air_rate_cap);
-  }
-
-  bool dl_token_throttled() const { return u.dl_logical_channels().is_token_throttled(slice_id); }
-
-  unsigned dl_grant_byte_budget() const { return u.dl_logical_channels().get_dl_grant_byte_budget(slice_id); }
-
-  bool dl_air_rate_cap_enabled() const { return u.dl_logical_channels().dl_air_rate_cap_enabled(slice_id); }
-
-  unsigned dl_gbr_air_cap_grant_bytes() const
-  {
-    return u.dl_logical_channels().get_dl_gbr_air_cap_grant_bytes(slice_id);
-  }
-
   void reset_dl_rate_averages() const { u.dl_logical_channels().reset_drbs_rate_averages(); }
 
-  void apply_dl_lc_rate_avg_window(lcid_t lcid) const { u.dl_logical_channels().apply_lc_rate_avg_window(lcid); }
-
-  void debit_dl_grant_tokens(unsigned tbs_bytes) const
+  bool consume_qos_rate_history_reset_pending() const
   {
-    u.dl_logical_channels().debit_dl_grant_tokens(slice_id, tbs_bytes);
+    return u.consume_qos_rate_history_reset_pending();
   }
+
+  void apply_dl_lc_rate_avg_window(lcid_t lcid) const { u.dl_logical_channels().apply_lc_rate_avg_window(lcid); }
 
 private:
   friend class slice_ue_repository;
