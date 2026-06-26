@@ -363,27 +363,12 @@ scheduler_time_qos::ue_ctxt::ue_ctxt(du_ue_index_t             ue_index_,
 {
 }
 
-void scheduler_time_qos::ue_ctxt::reset_rate_history(const slice_ue& u)
-{
-  total_dl_avg_rate_ = exp_average_fast_start<double>{parent->exp_avg_alpha};
-  total_ul_avg_rate_ = exp_average_fast_start<double>{parent->exp_avg_alpha};
-  dl_sum_alloc_bytes = 0;
-  ul_sum_alloc_bytes = 0;
-  u.reset_dl_rate_averages();
-}
-
 void scheduler_time_qos::ue_ctxt::compute_dl_prio(const slice_ue& u,
                                                   slot_point      pdcch_slot,
                                                   slot_point      pdsch_slot,
                                                   unsigned        nof_slots_elapsed)
 {
   dl_prio = forbid_prio;
-
-  if (u.consume_qos_rate_history_reset_pending()) {
-    static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
-    reset_rate_history(u);
-    logger.info("UE{} [QOS-RECONFIG] reset PF and LC delivered-rate history", u.ue_index());
-  }
 
   // Process previous slot allocated bytes and compute average.
   compute_dl_avg_rate(u, nof_slots_elapsed);

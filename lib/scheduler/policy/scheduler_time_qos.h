@@ -78,8 +78,6 @@ private:
     void save_dl_alloc(uint32_t total_alloc_bytes, const dl_msg_tb_info& tb_info);
     void save_ul_alloc(unsigned alloc_bytes);
 
-    void reset_rate_history(const slice_ue& u);
-
     const du_ue_index_t       ue_index;
     const du_cell_index_t     cell_index;
     const scheduler_time_qos* parent;

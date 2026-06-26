@@ -118,15 +118,6 @@ public:
     return contains(lcid) ? u.dl_logical_channels().hol_toa(lcid) : slot_point{};
   }
 
-  void reset_dl_rate_averages() const { u.dl_logical_channels().reset_drbs_rate_averages(); }
-
-  bool consume_qos_rate_history_reset_pending() const
-  {
-    return u.consume_qos_rate_history_reset_pending();
-  }
-
-  void apply_dl_lc_rate_avg_window(lcid_t lcid) const { u.dl_logical_channels().apply_lc_rate_avg_window(lcid); }
-
 private:
   friend class slice_ue_repository;
 

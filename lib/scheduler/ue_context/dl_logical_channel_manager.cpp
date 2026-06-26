@@ -78,17 +78,6 @@ static void sync_lc_mbr_bps(uint64_t& mbr_bps_out, const logical_channel_config&
   mbr_bps_out = 0;
 }
 
-static bool qos_config_changed(const logical_channel_config* old_lc, const logical_channel_config* new_lc)
-{
-  if (new_lc == nullptr or is_srb(new_lc->lcid) or not new_lc->qos.has_value()) {
-    return false;
-  }
-  if (old_lc == nullptr or not old_lc->qos.has_value()) {
-    return true;
-  }
-  return not(old_lc->qos == new_lc->qos);
-}
-
 dl_logical_channel_manager::dl_logical_channel_manager(subcarrier_spacing              scs_common_,
                                                        du_ue_index_t                   ue_index_,
                                                        bool                            starts_in_fallback,
@@ -267,18 +256,8 @@ void dl_logical_channel_manager::configure(logical_channel_config_list_ptr log_c
     return;
   }
 
-  bool qos_changed = false;
-
   // Set new LC configurations.
   for (logical_channel_config_ptr ch_cfg : *channel_configs) {
-    const logical_channel_config* old_lc = nullptr;
-    if (old_cfgs.has_value() and old_cfgs->contains(ch_cfg->lcid)) {
-      old_lc = (*old_cfgs)[ch_cfg->lcid].operator->();
-    }
-    if (qos_config_changed(old_lc, ch_cfg.operator->())) {
-      qos_changed = true;
-    }
-
     channels[ch_cfg->lcid].active = true;
     auto& ch                     = channels[ch_cfg->lcid];
     if (not is_srb(ch_cfg->lcid) and ch_cfg->qos.has_value() and ch_cfg->qos->gbr_qos_info.has_value()) {
@@ -301,14 +280,6 @@ void dl_logical_channel_manager::configure(logical_channel_config_list_ptr log_c
       ch.avg_bytes_per_slot.resize(0);
     }
     // buffer state stays the same when configuration is updated.
-  }
-
-  if (qos_changed) {
-    static srslog::basic_logger& logger = srslog::fetch_basic_logger("SCHED");
-    reset_drbs_rate_averages();
-    qos_rate_history_reset_pending = true;
-    logger.info("UE{} [QOS-RECONFIG] QoS signature changed — reset LC delivered-rate and pending PF history",
-                fmt::underlying(ue_index));
   }
 
   // Refresh sorted channels list.

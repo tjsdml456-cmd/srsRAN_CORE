@@ -155,14 +155,6 @@ public:
                : 0.0;
   }
 
-  /// Consume one-shot flag set when QoS config changes and PF/LC rate history should be cleared.
-  bool consume_qos_rate_history_reset_pending()
-  {
-    const bool pending = qos_rate_history_reset_pending;
-    qos_rate_history_reset_pending = false;
-    return pending;
-  }
-
   slot_point hol_toa(lcid_t lcid) const { return is_active(lcid) ? channels[lcid].hol_toa : slot_point{}; }
 
   /// \brief Update DL buffer status for a given LCID.
@@ -261,8 +253,6 @@ private:
 
   /// Per-UE DL MAC SDU payload throughput tracker (measurement only).
   dl_mac_shaped_thp_tracker shaped_thp_tracker;
-
-  bool qos_rate_history_reset_pending = false;
 };
 
 /// \brief Allocate MAC SDUs and corresponding MAC subPDU subheaders.
