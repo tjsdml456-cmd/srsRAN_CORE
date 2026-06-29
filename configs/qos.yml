@@ -457,6 +457,33 @@ qos:
           sn: 18
           t-reassembly: 20
           t-status-prohibit: 10
+  -
+    # 5QI = 80 e.g Low Latency eMBB applications (Augmented Reality)
+    # PDB = 10ms PER = 10^-6
+    five_qi: 80
+    pdcp:
+      tx:
+        sn: 12
+        discard_timer: 10
+        status_report_required: false
+      rx:
+        sn: 12
+        t_reordering: 0
+        out_of_order_delivery: false
+    f1u_cu_up:
+      backoff_timer: 10
+    f1u_du:
+      backoff_timer: 10
+    rlc:
+      mode: um-bidir
+      um-bidir:
+        tx:
+          sn: 12
+          queue-size: 16384
+          queue-bytes: 6172672
+        rx:
+          sn: 12
+          t-reassembly: 10
   #
   # Delay-critical Guaranteed Bitrate 5QIs
   #
@@ -703,3 +730,4 @@ qos:
         rx:
           sn: 12
           t-reassembly: 10
+
