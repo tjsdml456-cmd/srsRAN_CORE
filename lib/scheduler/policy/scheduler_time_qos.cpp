@@ -37,30 +37,8 @@ static constexpr unsigned MAX_PF_COEFF = 10;
 // [Implementation-defined] Maximum number of slots skipped between scheduling opportunities.
 static constexpr unsigned MAX_SLOT_SKIPPED = 20;
 
-namespace {
-
-time_qos_scheduler_config make_gbr_prioritized_qos_policy(const scheduler_ue_expert_config& expert_cfg_)
-{
-  time_qos_scheduler_config cfg = std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg);
-  cfg.combine_function          = time_qos_scheduler_config::combine_function_type::gbr_prioritized;
-  return cfg;
-}
-
-double apply_gbr_prioritized_pf_floor(double                           pf_weight,
-                                      double                           gbr_weight,
-                                      const time_qos_scheduler_config& policy_params)
-{
-  if (policy_params.combine_function == time_qos_scheduler_config::combine_function_type::gbr_prioritized and
-      gbr_weight > 1.0) {
-    return std::max(1.0, pf_weight);
-  }
-  return pf_weight;
-}
-
-} // namespace
-
 scheduler_time_qos::scheduler_time_qos(const scheduler_ue_expert_config& expert_cfg_, du_cell_index_t cell_index_) :
-  params(make_gbr_prioritized_qos_policy(expert_cfg_)), cell_index(cell_index_)
+  params(std::get<time_qos_scheduler_config>(expert_cfg_.policy_cfg)), cell_index(cell_index_)
 {
 }
 
@@ -109,7 +87,7 @@ void scheduler_time_qos::save_dl_newtx_grants(span<const dl_msg_alloc> dl_grants
 {
   // Save result of DL grants in UE history.
   for (const dl_msg_alloc& grant : dl_grants) {
-    ue_history_db[grant.context.ue_index].save_dl_alloc(grant.pdsch_cfg.codewords[0].tb_size_bytes, grant.tb_list[0]);
+    ue_history_db[grant.context.ue_index].save_dl_alloc(grant.tb_list[0]);
   }
 }
 
@@ -154,7 +132,11 @@ static double combine_qos_metrics(double                           pf_weight,
                                   double                           delay_weight,
                                   const time_qos_scheduler_config& policy_params)
 {
-  pf_weight = apply_gbr_prioritized_pf_floor(pf_weight, gbr_weight, policy_params);
+  if (policy_params.combine_function == time_qos_scheduler_config::combine_function_type::gbr_prioritized and
+      gbr_weight > 1.0) {
+    // GBR target has not been met and we prioritize GBR over PF.
+    pf_weight = std::max(1.0, pf_weight);
+  }
 
   // Log QoS metrics for debugging
   static auto& logger = srslog::fetch_basic_logger("SCHED", false);
@@ -257,14 +239,13 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
               (policy_params.pdb_enabled and delay_weight_before != 0) ? "calculated" :
               (not policy_params.pdb_enabled) ? "pdb_disabled" : "delay_weight_was_zero");
 
-  const double pf_weight_raw = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
-  const double pf_weight     = apply_gbr_prioritized_pf_floor(pf_weight_raw, gbr_weight, policy_params);
+  const double pf_weight = compute_pf_metric(estim_dl_rate, avg_dl_rate, policy_params.pf_fairness_coeff);
   // If priority is disabled, set the priority weight of all UEs to 1.0.
   double prio_weight = policy_params.priority_enabled ? (max_combined_prio_level + 1 - min_combined_prio) /
                                                             static_cast<double>(max_combined_prio_level + 1)
                                                       : 1.0;
 
-  // Log DL priority calculation every evaluation (pf_weight is post gbr_prioritized floor).
+  // Log DL priority calculation every evaluation.
   logger.info("DL Priority calc: UE{} min_combined_prio={}, prio_weight={:.3f}, pf_weight={:.3f}, gbr_weight={:.3f}, "
               "delay_weight={:.3f}",
               u.ue_index(),
@@ -275,7 +256,7 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
               delay_weight);
 
   // The return is a combination of ARP and QoS priorities, GBR and PF weight functions.
-  return combine_qos_metrics(pf_weight_raw, gbr_weight, prio_weight, delay_weight, policy_params);
+  return combine_qos_metrics(pf_weight, gbr_weight, prio_weight, delay_weight, policy_params);
 }
 
 /// \brief Computes UL weights used in computation of UL priority value for a UE in a slot.
@@ -495,9 +476,11 @@ void scheduler_time_qos::ue_ctxt::compute_ul_avg_rate(const slice_ue& u, unsigne
   ul_sum_alloc_bytes = 0;
 }
 
-void scheduler_time_qos::ue_ctxt::save_dl_alloc(uint32_t total_alloc_bytes, const dl_msg_tb_info& tb_info)
+void scheduler_time_qos::ue_ctxt::save_dl_alloc(const dl_msg_tb_info& tb_info)
 {
-  dl_sum_alloc_bytes += total_alloc_bytes;
+  for (const dl_msg_lc_info& lc : tb_info.lc_chs_to_sched) {
+    dl_sum_alloc_bytes += lc.sched_bytes;
+  }
 }
 
 void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)

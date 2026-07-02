@@ -60,7 +60,7 @@ struct time_qos_scheduler_config {
   /// \brief Fairness Coefficient to use in Proportional Fair weight of the QoS-aware policy.
   /// For a coefficient of zero, the PF weight prioritizes maximum rate.
   /// As the coefficient tends towards infinity, the PF weight prioritizes fairness in throughput distribution.
-  double pf_fairness_coeff = 2.0;
+  double pf_fairness_coeff = 1.3;
   /// Whether to take into account or ignore the QoS Flow priority and ARP priority in the QoS-aware scheduling.
   bool priority_enabled = true;
   /// Whether to take into account or ignore the QoS Flow Packet Delay Budget (PDB) in the QoS-aware scheduling.
