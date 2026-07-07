@@ -56,7 +56,7 @@ static constexpr unsigned MAX_PENDING_CES = MAX_NOF_DU_UES * MAX_CES_PER_UE;
 
 // GBR gbr_weight and MFBR policer share this window (MFBR policing at MAC grant time).
 // 300ms: smoother than 100ms cliff; fits ~250ms steady state per 0.5s QoS phase after QRT.
-static constexpr unsigned GBR_RATE_AVG_WINDOW_MS = 300;
+static constexpr unsigned GBR_RATE_AVG_WINDOW_MS = 2000;
 
 static std::optional<unsigned> get_qos_rate_avg_window_msec(const logical_channel_config::qos_info& qos)
 {
@@ -669,6 +669,7 @@ unsigned srsran::build_dl_transport_block_info(dl_msg_tb_info&             tb_in
   }
   return total_subpdu_bytes;
 }
+
 
 
 

@@ -186,6 +186,12 @@ static double compute_dl_qos_weights(const slice_ue&                  u,
         double         delay_contrib    = hol_delay_ms / static_cast<double>(pdb);
         delay_weight += delay_contrib;
 
+        if ( static_cast<double>(pdb) == 300 ) {
+         
+          delay_weight = 1.0;
+        
+      }
+
         // throttle 없이, 조건 만족할 때마다 전부 찍기 (ms 단위)
         logger.info("[DELAY-WEIGHT] UE{} LCID{} hol_toa={} slot_tx={} hol_delay_ms={:.3f} PDB={}ms delay_contrib={:.3f} delay_weight={:.3f}",
                     u.ue_index(),
@@ -490,6 +496,7 @@ void scheduler_time_qos::ue_ctxt::save_ul_alloc(unsigned alloc_bytes)
   }
   ul_sum_alloc_bytes += alloc_bytes;
 }
+
 
 
 
