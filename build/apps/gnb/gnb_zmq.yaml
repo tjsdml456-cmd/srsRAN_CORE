@@ -7,9 +7,9 @@ cu_cp:
   amf:
     addr: 127.0.0.5                # The address or hostname of the AMF.
     port: 38412
-    bind_addr: 127.0.0.5            # A local IP that the gNB binds to for traffic from the AMF.
+    bind_addr: 127.0.0.5           # A local IP that the gNB binds to for traffic from the AMF.
     supported_tracking_areas:
-      - tac: 7
+      - tac: 1
         plmn_list:
           - plmn: "00101"
             tai_slice_support_list:
@@ -29,7 +29,7 @@ cell_cfg:
   channel_bandwidth_MHz: 10         # Bandwith in MHz. Number of PRBs will be automatically derived.
   common_scs: 15                    # Subcarrier spacing in kHz used for data.
   plmn: "00101"                     # PLMN broadcasted by the gNB.
-  tac: 7                            # Tracking area code (needs to match the core configuration).
+  tac: 1                            # Tracking area code (needs to match the core configuration).
   pdcch:
     common:
       ss0_index: 0                  # Set search space zero index to match srsUE capabilities
@@ -46,6 +46,10 @@ cell_cfg:
     mcs_table: qam64                # Sets PDSCH MCS to 64 QAM
   pusch:
     mcs_table: qam64                # Sets PUSCH MCS to 64 QAM
+
+expert_phy:
+  pusch_sinr_calc_method: channel_estimator   # 또는 post_equalization / evm
+
 
 log:
   filename: /tmp/gnb.log            # Path of the log file.

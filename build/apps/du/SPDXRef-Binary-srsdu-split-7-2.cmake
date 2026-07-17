@@ -9,7 +9,7 @@
 			else()
 				file(SHA1 ${_install_root}/bin/srsdu _sha1)
 				list(APPEND SBOM_VERIFICATION_CODES ${_sha1})
-				file(APPEND "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
+				file(APPEND "/home/user/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
 "
 FileName: ./bin/srsdu
 SPDXID: SPDXRef-Binary-srsdu-split-7-2

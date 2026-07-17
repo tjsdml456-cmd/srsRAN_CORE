@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/uplink/prach
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/uplink/prach
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

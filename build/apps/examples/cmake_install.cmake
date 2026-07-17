@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/apps/examples
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/apps/examples
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,16 +44,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/examples/ofh/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/examples/ofh/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/examples/phy/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/examples/phy/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/examples/radio/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/examples/radio/cmake_install.cmake")
 endif()
 

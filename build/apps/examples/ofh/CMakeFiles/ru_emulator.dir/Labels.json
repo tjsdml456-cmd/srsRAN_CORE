@@ -2,19 +2,19 @@
 	"sources" : 
 	[
 		{
-			"file" : "/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_cli11_schema.cpp"
+			"file" : "/home/user/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_cli11_schema.cpp"
 		},
 		{
-			"file" : "/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator.cpp"
+			"file" : "/home/user/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator.cpp"
 		},
 		{
-			"file" : "/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_rx_window_checker.cpp"
+			"file" : "/home/user/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_rx_window_checker.cpp"
 		},
 		{
-			"file" : "/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_socket_transceiver.cpp"
+			"file" : "/home/user/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_socket_transceiver.cpp"
 		},
 		{
-			"file" : "/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_timing_notifier.cpp"
+			"file" : "/home/user/srsRAN_main/srsRAN_Project/apps/examples/ofh/ru_emulator_timing_notifier.cpp"
 		}
 	],
 	"target" : 

@@ -1,10 +1,10 @@
 lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pdsch_processor_impl.cpp.o: \
- /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_impl.cpp \
+ /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_impl.cpp \
  /usr/include/stdc-predef.h \
- /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_impl.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_encoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/span.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/type_traits.h \
+ /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_impl.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_encoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/span.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/type_traits.h \
  /usr/include/c++/11/array /usr/include/c++/11/utility \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
@@ -34,12 +34,12 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/bits/ptr_traits.h /usr/include/c++/11/debug/debug.h \
  /usr/include/c++/11/bits/predefined_ops.h \
  /usr/include/c++/11/bits/range_access.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/static_vector.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/compiler.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/srsran_assert.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/error_handling.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/rtsan.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/base.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/static_vector.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/compiler.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/srsran_assert.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/error_handling.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/rtsan.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/base.h \
  /usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h \
  /usr/lib/gcc/x86_64-linux-gnu/11/include/syslimits.h \
  /usr/include/limits.h \
@@ -66,7 +66,6 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/floatn.h \
  /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
- /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h \
  /usr/include/x86_64-linux-gnu/bits/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/stdio2.h /usr/include/string.h \
  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
@@ -79,7 +78,6 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
  /usr/include/c++/11/bits/atomic_lockfree_defines.h \
  /usr/include/c++/11/cstdio /usr/include/c++/11/cstdlib \
  /usr/include/stdlib.h /usr/include/x86_64-linux-gnu/bits/waitflags.h \
@@ -100,7 +98,6 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
  /usr/include/x86_64-linux-gnu/bits/select2.h \
- /usr/include/x86_64-linux-gnu/bits/select-decl.h \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
  /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h \
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
@@ -116,7 +113,6 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/cwchar /usr/include/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/types/wint_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/mbstate_t.h \
- /usr/include/x86_64-linux-gnu/bits/wchar2-decl.h \
  /usr/include/x86_64-linux-gnu/bits/wchar2.h \
  /usr/include/c++/11/bits/stream_iterator.h \
  /usr/include/c++/11/bits/streambuf_iterator.h \
@@ -188,9 +184,9 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/backward/auto_ptr.h \
  /usr/include/c++/11/pstl/glue_memory_defs.h \
  /usr/include/c++/11/pstl/execution_defs.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/log_channel.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_backend.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/shared_types.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/log_channel.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_backend.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/shared_types.h \
  /usr/include/c++/11/functional /usr/include/c++/11/bits/std_function.h \
  /usr/include/c++/11/unordered_map /usr/include/c++/11/bits/hashtable.h \
  /usr/include/c++/11/bits/hashtable_policy.h \
@@ -204,9 +200,9 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/bits/algorithmfwd.h \
  /usr/include/c++/11/bits/stl_heap.h \
  /usr/include/c++/11/bits/uniform_int_dist.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/args.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/format.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/base.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/args.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/format.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/base.h \
  /usr/include/c++/11/cmath /usr/include/math.h \
  /usr/include/x86_64-linux-gnu/bits/math-vector.h \
  /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
@@ -230,32 +226,32 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/tr1/poly_laguerre.tcc \
  /usr/include/c++/11/tr1/riemann_zeta.tcc /usr/include/c++/11/cstddef \
  /usr/include/c++/11/cstring \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/core.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_entry.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_entry_metadata.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/core.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_entry.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/log_entry_metadata.h \
  /usr/include/c++/11/chrono /usr/include/c++/11/ratio \
  /usr/include/c++/11/ctime /usr/include/c++/11/bits/parse_numbers.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/thread_utils.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/sink.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/error_string.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/memory_buffer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/formatter.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/context.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/tmpl_utils.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/thread_utils.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/sink.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/error_string.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/memory_buffer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/formatter.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/context.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/detail/support/tmpl_utils.h \
  /usr/include/c++/11/cassert /usr/include/assert.h \
  /usr/include/c++/11/optional \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/ranges.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/format.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/ranges.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/fmt/include/fmt/format.h \
  /usr/include/c++/11/algorithm \
  /usr/include/c++/11/pstl/glue_algorithm_defs.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/codeblock_metadata.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/bit_buffer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/bounded_bitset.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/math/bit_ops.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/math/math_utils.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/complex.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/bf16.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/strong_type.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/codeblock_metadata.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/bit_buffer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/bounded_bitset.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/math/bit_ops.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/math/math_utils.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/complex.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/bf16.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/strong_type.h \
  /usr/include/c++/11/complex /usr/include/c++/11/sstream \
  /usr/include/c++/11/istream /usr/include/c++/11/ios \
  /usr/include/c++/11/bits/basic_ios.h \
@@ -271,120 +267,120 @@ lib/phy/upper/channel_processors/pdsch/CMakeFiles/srsran_pdsch_processor.dir/pds
  /usr/include/c++/11/bits/stl_numeric.h \
  /usr/include/c++/11/pstl/glue_numeric_defs.h \
  /usr/include/c++/11/cinttypes /usr/include/inttypes.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/log_likelihood_ratio.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/type_traits.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/ldpc_base_graph.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/units.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/log_likelihood_ratio.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/type_traits.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/ldpc_base_graph.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/units.h \
  /usr/include/c++/11/climits \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/modulation_scheme.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/sch_constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_modulator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/precoding_configuration.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/interval.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/tensor.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/precoding/precoding_constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_block.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/subcarrier_spacing.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/frequency_range.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/precoding/precoding_weight_matrix.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/copy.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/types.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/sc_prod.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/zero.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/rb_allocation.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/rb_bitmap.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/rb_interval.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/vrb_to_prb.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/re_pattern.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/mask_types.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/cyclic_prefix.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/phy_time_unit.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_writer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_base.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/modulation_mapper.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/dmrs_mapping.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/ofdm_symbol_range.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/frame_types.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/sliv.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_processor.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/expected.h \
- /home/sunny/srsRAN_main/srsRAN_Project/external/TartanLlama/expected.hpp \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/pdsch/pdsch_context.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/rnti.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/scheduler/harq_id.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/bounded_integer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/slot_point.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/shared_transport_block.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/pdsch/dmrs_pdsch_processor.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/ptrs/ptrs_pdsch_generator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/pdsch/pdsch_constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_helpers.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/instrumentation/traces/du_traces.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/du_types.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/gnb_constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/rusage_trace_recorder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/event_tracing.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/resource_usage.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/format/fmt_basic_parser.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/dmrs.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs_pattern.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs_constants.h \
- /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_validator_impl.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/hal/phy/upper/channel_processors/hw_accelerator_pdsch_enc_factory.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/hal/phy/upper/channel_processors/hw_accelerator_pdsch_enc.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/hal/hw_accelerator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/support_factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/generic_functions/precoding/precoding_factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/generic_functions/precoding/channel_precoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/re_buffer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/interpolator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/prach_buffer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/prach_buffer_pool.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_mapper.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_pool.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_context.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/support/shared_resource_grid.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/executors/task_executor.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/unique_function.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/channel_coding_factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/crc_calculator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_decoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_encoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_rate_dematcher.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_rate_matcher.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_segmenter_rx.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_segmenter_tx.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_allocator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_code.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_deallocator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_decoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_encoder.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_interleaver.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_rate_dematcher.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_rate_matcher.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/short/short_block_detector.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/channel_modulation_factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/demodulation_mapper.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/evm_calculator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_block_processor.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/sequence_generator_factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/low_papr_sequence_collection.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/low_papr_sequence_generator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/pseudo_random_generator.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/byte_buffer.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/byte_buffer_view.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_range_helpers.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_segment_list.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_segment.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/support/has_method.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_memory_resource.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/intrusive_ptr.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/pdsch/factories.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/ptrs/ptrs_pdsch_generator_factory.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srslog/logger.h \
- /home/sunny/srsRAN_main/srsRAN_Project/include/srsran/srsvec/bit.h
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/modulation_scheme.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/sch/sch_constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_modulator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/precoding_configuration.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/interval.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/tensor.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/precoding/precoding_constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_block.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/subcarrier_spacing.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/frequency_range.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/precoding/precoding_weight_matrix.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/copy.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/types.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/sc_prod.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/zero.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/rb_allocation.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/rb_bitmap.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/rb_interval.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/vrb_to_prb.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/re_pattern.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/mask_types.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/cyclic_prefix.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/phy_time_unit.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_writer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_base.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/modulation_mapper.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/dmrs_mapping.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/ofdm_symbol_range.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/frame_types.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/resource_allocation/sliv.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_processor.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/expected.h \
+ /home/user/srsRAN_main/srsRAN_Project/external/TartanLlama/expected.hpp \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/pdsch/pdsch_context.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/rnti.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/scheduler/harq_id.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/bounded_integer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/slot_point.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/shared_transport_block.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/pdsch/dmrs_pdsch_processor.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/ptrs/ptrs_pdsch_generator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/pdsch/pdsch_constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_helpers.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/instrumentation/traces/du_traces.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/du_types.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/gnb_constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/rusage_trace_recorder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/event_tracing.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/tracing/resource_usage.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/format/fmt_basic_parser.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/dmrs.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs_pattern.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/ran/ptrs/ptrs_constants.h \
+ /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pdsch/pdsch_processor_validator_impl.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/hal/phy/upper/channel_processors/hw_accelerator_pdsch_enc_factory.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/hal/phy/upper/channel_processors/hw_accelerator_pdsch_enc.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/hal/hw_accelerator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/support_factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/generic_functions/precoding/precoding_factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/generic_functions/precoding/channel_precoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/re_buffer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/interpolator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/prach_buffer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/prach_buffer_pool.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_mapper.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_pool.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/resource_grid_context.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/support/shared_resource_grid.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/executors/task_executor.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/unique_function.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/channel_coding_factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/crc_calculator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_decoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_encoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_rate_dematcher.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_rate_matcher.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_segmenter_rx.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/ldpc/ldpc_segmenter_tx.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_allocator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_code.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_deallocator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_decoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_encoder.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_interleaver.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_rate_dematcher.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/polar/polar_rate_matcher.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_coding/short/short_block_detector.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/channel_modulation_factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/demodulation_mapper.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_modulation/evm_calculator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/channel_processors/pdsch/pdsch_block_processor.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/sequence_generator_factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/low_papr_sequence_collection.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/low_papr_sequence_generator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/sequence_generators/pseudo_random_generator.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/byte_buffer.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/byte_buffer_view.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_range_helpers.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_segment_list.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_segment.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/support/has_method.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/byte_buffer_memory_resource.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/adt/detail/intrusive_ptr.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/pdsch/factories.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/phy/upper/signal_processors/ptrs/ptrs_pdsch_generator_factory.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srslog/logger.h \
+ /home/user/srsRAN_main/srsRAN_Project/include/srsran/srsvec/bit.h

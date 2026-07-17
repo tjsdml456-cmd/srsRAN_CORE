@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,44 +44,44 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_coding/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_coding/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_modulation/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_modulation/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/equalization/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/equalization/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/metrics/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/metrics/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/sequence_generators/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/sequence_generators/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/signal_processors/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/signal_processors/cmake_install.cmake")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/liblog_likelihood_ratio.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/liblog_likelihood_ratio.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/libsrsran_upper_phy_support.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/libsrsran_upper_phy_support.a")
 endif()
 

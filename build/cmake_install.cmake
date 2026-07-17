@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -42,53 +42,53 @@ if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/usr/bin/objdump")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   
 		message(STATUS "Installing: /usr/local/share/srsran.spdx")
 		set(SBOM_EXT_DOCS)
-		file(WRITE "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in" "")
+		file(WRITE "/home/user/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in" "")
 		
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   
-				file(READ "/home/sunny/srsRAN_main/srsRAN_Project/build/SPDXRef-DOCUMENT.spdx.in" _f_contents)
-				file(APPEND "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in" "${_f_contents}")
+				file(READ "/home/user/srsRAN_main/srsRAN_Project/build/SPDXRef-DOCUMENT.spdx.in" _f_contents)
+				file(APPEND "/home/user/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in" "${_f_contents}")
 			
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   set(SBOM_VERIFICATION_CODES "")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/configs/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/configs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/docs/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/docs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/external/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/external/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/utils/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/utils/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/sbom/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -99,5 +99,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/sunny/srsRAN_main/srsRAN_Project/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/user/srsRAN_main/srsRAN_Project/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

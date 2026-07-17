@@ -28,6 +28,7 @@
 #include "rrc_ue_helpers.h"
 #include "rrc_ue_impl.h"
 #include "ue/rrc_measurement_types_asn1_converters.h"
+#include "srsran/ran/radio_slot_clock.h"
 #include "srsran/asn1/asn1_utils.h"
 #include "srsran/asn1/rrc_nr/dl_ccch_msg.h"
 #include "srsran/asn1/rrc_nr/dl_dcch_msg_ies.h"
@@ -245,6 +246,16 @@ void rrc_ue_impl::handle_ul_info_transfer(const ul_info_transfer_ies_s& ul_info_
   ul_nas_msg.user_location_info.nr_cgi      = context.cell.cgi;
   ul_nas_msg.user_location_info.tai.plmn_id = context.plmn_id;
   ul_nas_msg.user_location_info.tai.tac     = context.cell.tac;
+
+  {
+    const slot_point sl = radio_slot_clock_now();
+    logger.log_info("QRT-PROF GNB_NAS_RX ue={} nas_len={} slot={} sfn={} slot_idx={}",
+                    fmt::underlying(context.ue_index),
+                    ul_nas_msg.nas_pdu.length(),
+                    sl.valid() ? static_cast<int>(sl.to_uint()) : -1,
+                    sl.valid() ? static_cast<int>(sl.sfn()) : -1,
+                    sl.valid() ? static_cast<int>(sl.slot_index()) : -1);
+  }
 
   ngap_notifier.on_ul_nas_transport_message(ul_nas_msg);
 }
@@ -760,3 +771,4 @@ byte_buffer rrc_ue_impl::handle_rrc_handover_command(byte_buffer cmd)
 
   return ho_reconf_pdu;
 }
+

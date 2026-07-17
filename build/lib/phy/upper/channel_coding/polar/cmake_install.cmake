@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_coding/polar
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_coding/polar
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

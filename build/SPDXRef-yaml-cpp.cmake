@@ -1,12 +1,12 @@
 
-			file(APPEND "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
+			file(APPEND "/home/user/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
 "
 PackageName: yaml-cpp
 SPDXID: SPDXRef-yaml-cpp
 PackageDownloadLocation: https://github.com/jbeder/yaml-cpp
 PackageLicenseDeclared: NOASSERTION
 PackageCopyrightText: NOASSERTION
-PackageVersion: 0.8.0
+PackageVersion: 0.7.0
 PackageSupplier: Organization: yaml-cpp project
 FilesAnalyzed: false
 PackageLicenseConcluded: MIT

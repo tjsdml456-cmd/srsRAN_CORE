@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,71 +44,71 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdcch/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdcch/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdsch/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdsch/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pusch/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pusch/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/ssb/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/ssb/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/uci/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/uci/cmake_install.cmake")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/libsrsran_channel_processors.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/libsrsran_channel_processors.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdcch/libsrsran_pdcch_processor.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdcch/libsrsran_pdcch_processor.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdsch/libsrsran_pdsch_processor.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pdsch/libsrsran_pdsch_processor.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/libsrsran_prach_detector.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/libsrsran_prach_detector.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_demodulator.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_demodulator.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_detector.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_detector.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_processor.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pucch/libsrsran_pucch_processor.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pusch/libsrsran_pusch_processor.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/pusch/libsrsran_pusch_processor.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/ssb/libsrsran_ssb_tx_processor.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/ssb/libsrsran_ssb_tx_processor.a")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/uci/libsrsran_uci_decoder.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/upper/channel_processors/uci/libsrsran_uci_decoder.a")
 endif()
 

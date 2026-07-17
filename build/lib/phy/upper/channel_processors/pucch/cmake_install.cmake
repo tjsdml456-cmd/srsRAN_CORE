@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pucch
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/upper/channel_processors/pucch
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

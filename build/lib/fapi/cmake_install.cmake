@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/fapi
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/fapi
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,21 +44,21 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/fapi/decorator_helpers/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/fapi/decorator_helpers/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/fapi/message_buffering/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/fapi/message_buffering/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/fapi/loggers/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/fapi/loggers/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/fapi/validators/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/fapi/validators/cmake_install.cmake")
 endif()
 

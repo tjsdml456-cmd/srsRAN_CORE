@@ -40,6 +40,8 @@
 #include "srsran/ngap/ngap_setup.h"
 #include "srsran/ngap/ngap_types.h"
 #include "srsran/ran/cause/ngap_cause.h"
+#include "srsran/ran/qos/five_qi.h"
+#include "srsran/ran/radio_slot_clock.h"
 
 using namespace srsran;
 using namespace asn1::ngap;
@@ -223,6 +225,18 @@ void ngap_impl::handle_ul_nas_transport_message(const cu_cp_ul_nas_transport& ms
   ul_nas_transport_msg->amf_ue_ngap_id = amf_ue_id_to_uint(amf_ue_id);
 
   fill_asn1_ul_nas_transport(ul_nas_transport_msg, msg);
+
+  {
+    const slot_point sl = radio_slot_clock_now();
+    logger.info("QRT-PROF GNB_NGAP_TX ue={} ran_ue={} amf_ue={} nas_len={} slot={} sfn={} slot_idx={}",
+                fmt::underlying(msg.ue_index),
+                fmt::underlying(ue_ctxt.ue_ids.ran_ue_id),
+                fmt::underlying(amf_ue_id),
+                msg.nas_pdu.length(),
+                sl.valid() ? static_cast<int>(sl.to_uint()) : -1,
+                sl.valid() ? static_cast<int>(sl.sfn()) : -1,
+                sl.valid() ? static_cast<int>(sl.slot_index()) : -1);
+  }
 
   // Schedule transmission of UL NAS transport message to AMF.
   ue->schedule_async_task(launch_async([this, msg, ngap_msg](coro_context<async_task<void>>& ctx) {
@@ -621,6 +635,32 @@ void ngap_impl::handle_pdu_session_resource_modify_request(const asn1::ngap::pdu
     ue_ctxt.logger.log_warning("Unable to fill ASN1 contents for PDUSessionResourceModifyRequest");
     schedule_error_indication(ue_ctxt.ue_ids.ue_index, ngap_cause_radio_network_t::unspecified);
     return;
+  }
+
+  {
+    const slot_point sl = radio_slot_clock_now();
+    bool             logged_flow = false;
+    for (const auto& psi_item : msg.pdu_session_res_modify_items) {
+      for (const auto& flow_item : psi_item.transfer.qos_flow_add_or_modify_request_list) {
+        const five_qi_t five_qi = flow_item.qos_flow_level_qos_params.qos_desc.get_5qi();
+        logger.info("QRT-PROF GNB_NGAP_RX ue={} psi={} qfi={} 5qi={} slot={} sfn={} slot_idx={}",
+                    fmt::underlying(msg.ue_index),
+                    fmt::underlying(psi_item.pdu_session_id),
+                    fmt::underlying(flow_item.qos_flow_id),
+                    five_qi != five_qi_t::invalid ? static_cast<int>(five_qi_to_uint(five_qi)) : -1,
+                    sl.valid() ? static_cast<int>(sl.to_uint()) : -1,
+                    sl.valid() ? static_cast<int>(sl.sfn()) : -1,
+                    sl.valid() ? static_cast<int>(sl.slot_index()) : -1);
+        logged_flow = true;
+      }
+    }
+    if (!logged_flow) {
+      logger.info("QRT-PROF GNB_NGAP_RX ue={} psi=-1 qfi=-1 5qi=-1 slot={} sfn={} slot_idx={}",
+                  fmt::underlying(msg.ue_index),
+                  sl.valid() ? static_cast<int>(sl.to_uint()) : -1,
+                  sl.valid() ? static_cast<int>(sl.sfn()) : -1,
+                  sl.valid() ? static_cast<int>(sl.slot_index()) : -1);
+    }
   }
 
   // Start routine.
@@ -1402,3 +1442,4 @@ bool ngap_impl::tx_pdu_notifier_with_logging::on_new_message(const ngap_message&
   }
   return decorated->on_new_message(msg);
 }
+

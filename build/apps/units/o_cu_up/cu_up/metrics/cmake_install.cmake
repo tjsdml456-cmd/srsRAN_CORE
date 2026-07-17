@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/apps/units/o_cu_up/cu_up/metrics
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/apps/units/o_cu_up/cu_up/metrics
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

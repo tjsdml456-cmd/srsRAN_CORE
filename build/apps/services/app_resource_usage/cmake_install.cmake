@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/apps/services/app_resource_usage
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/apps/services/app_resource_usage
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

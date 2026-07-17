@@ -8,15 +8,11 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/sdap/sdap_factory.cpp" "lib/sdap/CMakeFiles/srsran_sdap.dir/sdap_factory.cpp.o" "gcc" "lib/sdap/CMakeFiles/srsran_sdap.dir/sdap_factory.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/sdap/sdap_factory.cpp" "lib/sdap/CMakeFiles/srsran_sdap.dir/sdap_factory.cpp.o" "gcc" "lib/sdap/CMakeFiles/srsran_sdap.dir/sdap_factory.cpp.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
   )
 
 # Fortran module output directory.

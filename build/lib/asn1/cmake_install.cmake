@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/asn1
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/asn1
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,6 +44,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/asn1/rrc_nr/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/asn1/rrc_nr/cmake_install.cmake")
 endif()
 

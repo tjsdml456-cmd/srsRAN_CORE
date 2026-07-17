@@ -1,5 +1,5 @@
 
-			file(APPEND "/home/sunny/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
+			file(APPEND "/home/user/srsRAN_main/srsRAN_Project/build/sbom/sbom.spdx.in"
 "
 PackageName: ZeroMQ
 SPDXID: SPDXRef-ZeroMQ

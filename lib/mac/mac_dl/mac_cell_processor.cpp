@@ -28,6 +28,7 @@
 #include "srsran/pcap/dlt_pcap.h"
 #include "srsran/ran/band_helper.h"
 #include "srsran/ran/pdsch/pdsch_constants.h"
+#include "srsran/ran/radio_slot_clock.h"
 #include "srsran/scheduler/result/sched_result.h"
 #include "srsran/support/async/async_timer.h"
 #include "srsran/support/async/execute_on_blocking.h"
@@ -337,6 +338,7 @@ void mac_cell_processor::handle_slot_indication_impl(slot_point               sl
   // * Start of Critical Path * //
 
   logger.set_context(sl_tx.sfn(), sl_tx.slot_index());
+  radio_slot_clock_update(sl_tx);
 
   if (SRSRAN_UNLIKELY(state == cell_state::inactive)) {
     // Ignore slot indication if cell is inactive.
@@ -652,4 +654,5 @@ void mac_cell_processor::write_tx_pdu_pcap(slot_point                sl_tx,
     }
   }
 }
+
 

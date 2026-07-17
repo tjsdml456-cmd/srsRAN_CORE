@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/downlink
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/downlink
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,6 +44,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/phy/lower/processors/downlink/pdxch/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/phy/lower/processors/downlink/pdxch/cmake_install.cmake")
 endif()
 

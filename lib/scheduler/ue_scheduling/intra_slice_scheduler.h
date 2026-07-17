@@ -25,6 +25,8 @@
 #include "../policy/scheduler_policy.h"
 #include "../slicing/ran_slice_candidate.h"
 #include "ue_cell_grid_allocator.h"
+#include <cstdint>
+#include <unordered_map>
 
 namespace srsran {
 
@@ -156,7 +158,11 @@ private:
   // Grants being built for the current slice.
   std::vector<ue_cell_grid_allocator::dl_newtx_grant_builder> pending_dl_newtxs;
   std::vector<ue_cell_grid_allocator::ul_newtx_grant_builder> pending_ul_newtxs;
+
+  /// Last 5QI observed in an UL grant per UE (logged as dscp_* for QRT py reuse).
+  std::unordered_map<uint32_t, uint8_t> last_ul_grant_dscp;
 };
 
 } // namespace srsran
+
 

@@ -8,16 +8,12 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/adaptors/processor_handler_adaptor.cpp" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_handler_adaptor.cpp.o" "gcc" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_handler_adaptor.cpp.o.d"
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/adaptors/processor_notifier_adaptor.cpp" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_notifier_adaptor.cpp.o" "gcc" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_notifier_adaptor.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/adaptors/processor_handler_adaptor.cpp" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_handler_adaptor.cpp.o" "gcc" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_handler_adaptor.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/adaptors/processor_notifier_adaptor.cpp" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_notifier_adaptor.cpp.o" "gcc" "lib/phy/lower/processors/adaptors/CMakeFiles/srsran_lower_phy_adaptors.dir/processor_notifier_adaptor.cpp.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
   )
 
 # Fortran module output directory.

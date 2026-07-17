@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/du/du_high/du_manager/converters
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/du/du_high/du_manager/converters
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

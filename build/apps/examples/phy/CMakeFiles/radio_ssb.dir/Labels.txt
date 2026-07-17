@@ -1,6 +1,6 @@
 # Directory labels
  phy
 # Source files and their labels
-/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/phy/radio_ssb.cpp
-/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/phy/lower_phy_example_factory.cpp
-/home/sunny/srsRAN_main/srsRAN_Project/apps/examples/phy/upper_phy_ssb_example.cpp
+/home/user/srsRAN_main/srsRAN_Project/apps/examples/phy/radio_ssb.cpp
+/home/user/srsRAN_main/srsRAN_Project/apps/examples/phy/lower_phy_example_factory.cpp
+/home/user/srsRAN_main/srsRAN_Project/apps/examples/phy/upper_phy_ssb_example.cpp

@@ -8,17 +8,20 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_local_connector_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_local_connector_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_local_connector_factory.cpp.o.d"
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_network_client_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_client_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_client_factory.cpp.o.d"
-  "/home/sunny/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_network_server_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_server_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_server_factory.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_local_connector_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_local_connector_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_local_connector_factory.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_network_client_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_client_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_client_factory.cpp.o.d"
+  "/home/user/srsRAN_main/srsRAN_Project/lib/e1ap/gateways/e1_network_server_factory.cpp" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_server_factory.cpp.o" "gcc" "lib/e1ap/gateways/CMakeFiles/srsran_e1_gateway.dir/e1_network_server_factory.cpp.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/support/CMakeFiles/srsran_support.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/e1ap/common/CMakeFiles/srsran_e1ap_common.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/asn1/CMakeFiles/e1ap_asn1.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/pcap/CMakeFiles/srsran_pcap.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/asn1/CMakeFiles/asn1_utils.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/lib/srslog/CMakeFiles/srslog.dir/DependInfo.cmake"
+  "/home/user/srsRAN_main/srsRAN_Project/build/external/fmt/CMakeFiles/fmt.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

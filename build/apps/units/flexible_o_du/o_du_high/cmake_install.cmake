@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/apps/units/flexible_o_du/o_du_high
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/apps/units/flexible_o_du/o_du_high
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,16 +44,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/du_high/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/du_high/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/e2/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/e2/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/fapi/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/fapi/cmake_install.cmake")
 endif()
 

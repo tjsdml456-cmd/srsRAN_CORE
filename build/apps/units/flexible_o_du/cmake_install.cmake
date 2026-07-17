@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/apps/units/flexible_o_du
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/apps/units/flexible_o_du
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,31 +44,31 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_high/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_low/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/o_du_low/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_7_2/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_7_2/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_8/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_8/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_dynamic/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_dynamic/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_helpers/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/apps/units/flexible_o_du/split_helpers/cmake_install.cmake")
 endif()
 

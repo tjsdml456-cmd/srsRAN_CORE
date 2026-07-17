@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/downlink/pdxch
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/processors/downlink/pdxch
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

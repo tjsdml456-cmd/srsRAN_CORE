@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/du/du_high/du_manager
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/du/du_high/du_manager
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,26 +44,26 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/cbs/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/cbs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/converters/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/converters/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/du_ue/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/du_ue/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/procedures/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/procedures/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/sunny/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/ran_resource_management/cmake_install.cmake")
+  include("/home/user/srsRAN_main/srsRAN_Project/build/lib/du/du_high/du_manager/ran_resource_management/cmake_install.cmake")
 endif()
 

@@ -1,4 +1,4 @@
-# Install script for directory: /home/sunny/srsRAN_main/srsRAN_Project/lib/phy/lower/modulation
+# Install script for directory: /home/user/srsRAN_main/srsRAN_Project/lib/phy/lower/modulation
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

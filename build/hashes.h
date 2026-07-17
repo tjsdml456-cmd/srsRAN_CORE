@@ -38,8 +38,8 @@ static const char build_mode[] = "unknown";
 #endif
 #endif
 
-static const char build_hash[] = "d2f4b70dda";
+static const char build_hash[] = "f8c1e3c433";
 
-static const char build_info[] = "commit d2f4b70dda on branch main";
+static const char build_info[] = "commit f8c1e3c433 on branch main";
 
 } // namespace srsran
